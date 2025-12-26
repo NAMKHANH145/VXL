@@ -1,0 +1,4 @@
+  Mẹo nhỏ: Nếu sau này bạn có sửa code, bạn chỉ cần chạy 3 lệnh:
+   1. git add .
+   2. git commit -m "Mô tả nội dung bạn vừa sửa"
+   3. git push

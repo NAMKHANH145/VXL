@@ -238,3 +238,104 @@ PHẦN 5: GIẢI THÍCH CHI TIẾT HÀM APP_MAIN
 - **Kết thúc:** Sau khi các lệnh tạo Task được thực thi, hàm `app_main` sẽ kết thúc. Nhưng chương trình không dừng lại. Quyền điều khiển lúc này đã được trao hoàn toàn cho bộ lập lịch của FreeRTOS, và nó sẽ bắt đầu cho các Task đã tạo thay phiên nhau chạy.
 
 Hy vọng phần giải thích siêu chi tiết này giúp bạn hiểu rõ từng ngóc ngách của code!
+
+==================================================
+PHẦN 6: GIẢI THÍCH BỔ SUNG VÀ CÁC KHÁI NIỆM NÂNG CAO
+==================================================
+
+Phần này sẽ đi sâu vào các khái niệm bạn đã hỏi, giải thích các hàm và tham số còn thiếu.
+
+---
+### **1. Bộ ngoại vi LEDC (LED Control)**
+---
+
+**LEDC là gì?**
+LEDC là một bộ điều khiển phần cứng chuyên dụng có sẵn trên chip ESP32, được thiết kế để tạo ra các tín hiệu PWM (Pulse Width Modulation - Điều chế độ rộng xung) một cách cực kỳ chính xác và hiệu quả. Mặc dù có tên là "LED Control", nó có thể được dùng để điều khiển bất cứ thứ gì cần tín hiệu PWM, như động cơ, quạt, và trong trường hợp này là các quạt tản nhiệt.
+
+**Tại sao nó tốt hơn `analogWrite` của Arduino?**
+Trên nhiều dòng Arduino cơ bản, `analogWrite()` thực ra là một hàm phần mềm "giả lập" PWM, nó chiếm dụng tài nguyên CPU để bật/tắt các chân GPIO. Ngược lại, LEDC của ESP32 là **phần cứng chuyên dụng**:
+- **Không tốn CPU:** Một khi bạn đã cấu hình và ra lệnh cho nó chạy, nó sẽ tự tạo ra tín hiệu PWM chuẩn xác ở tần số và duty cycle mong muốn mà không cần CPU can thiệp. CPU được giải phóng để làm các việc khác (chạy logic, xử lý giao diện...). Điều này cực kỳ quan trọng trong môi trường đa nhiệm RTOS.
+- **Linh hoạt:** ESP32 có 16 kênh LEDC, mỗi kênh có thể được cấu hình độc lập với tần số, độ phân giải và duty cycle riêng, và có thể xuất tín hiệu ra gần như bất kỳ chân GPIO nào.
+
+**Cách hoạt động trong project này:**
+1.  **Cấu hình Timer (`ledc_timer_config`):** Một "bộ đếm thời gian" của LEDC được thiết lập.
+    - `freq_hz=PWM_FREQ (5000)`: Đặt tần số là 5000 Hz.
+    - `duty_resolution=PWM_RES (LEDC_TIMER_10_BIT)`: Đặt độ phân giải là 10 bit, nghĩa là duty cycle sẽ có 1024 mức (từ 0 đến 1023).
+2.  **Cấu hình Channel (`ledc_channel_config`):** Một "kênh" được thiết lập để điều khiển một chân GPIO cụ thể.
+    - `gpio_num=PIN_FAN_BLOWER`: Kênh này sẽ điều khiển chân được định nghĩa là `PIN_FAN_BLOWER`.
+    - `channel=PWM_CH_BLOWER`: Gán kênh vào một mã định danh (số 0).
+    - `timer_sel=LEDC_TIMER_0`: Cho kênh này biết nó phải dùng "bộ đếm thời gian" nào (ở đây là timer 0 đã cấu hình ở trên).
+    - `duty=0`: Đặt duty cycle ban đầu là 0.
+
+---
+### **2. Các Hàm Tiện Ích (Helpers)**
+---
+Đây là các hàm nhỏ do người viết code tạo ra để thực hiện các tác vụ lặp đi lặp lại.
+
+- **`filter_add(MovingAvg_t *f, float val)`**
+  - **Mục đích:** Thêm một giá trị mới vào bộ lọc trung bình trượt.
+  - **Tham số:**
+    - `MovingAvg_t *f`: Một **con trỏ** tới struct `MovingAvg_t` cần được cập nhật. Dùng con trỏ để hàm có thể thay đổi trực tiếp nội dung của struct gốc.
+    - `float val`: Giá trị cảm biến mới cần thêm vào.
+  - **Cách hoạt động:**
+    1.  Nó kiểm tra `val != val` để loại bỏ các giá trị `NaN` (Not a Number - không phải là số), có thể xảy ra khi đọc cảm biến lỗi.
+    2.  Nếu bộ lọc chưa đầy, nó chỉ đơn giản thêm giá trị mới vào mảng `buf`, tăng chỉ số `idx` và cộng vào tổng `sum`.
+    3.  Nếu bộ lọc đã đầy, nó thực hiện "xoay vòng": trừ giá trị cũ nhất (tại `idx` hiện tại) ra khỏi `sum`, ghi đè giá trị mới vào vị trí đó, rồi cộng giá trị mới vào `sum`.
+
+- **`filter_get(MovingAvg_t *f)`**
+  - **Mục đích:** Lấy giá trị trung bình đã được làm mượt từ bộ lọc.
+  - **Tham số:**
+    - `MovingAvg_t *f`: Con trỏ tới struct `MovingAvg_t` cần đọc.
+  - **Cách hoạt động:** Nó trả về `f->sum / count` (tổng chia cho số lượng mẫu), đây chính là giá trị trung bình.
+
+- **`log_to_sd(float t, float h, float w, int st)`**
+  - **Mục đích:** Ghi một dòng log dữ liệu xuống file `log.csv` trên thẻ SD.
+  - **Tham số:**
+    - `float t`: Nhiệt độ không khí (`TempAir`).
+    - `float h`: Độ ẩm không khí (`HumAir`).
+    - `float w`: Nhiệt độ nước (`TempWater`).
+    - `int st`: Trạng thái hệ thống (`State`).
+  - **Cách hoạt động:**
+    1.  Kiểm tra `sys.sd_mounted`. Nếu thẻ SD chưa sẵn sàng, hàm sẽ thoát ngay.
+    2.  `fopen("/sdcard/log.csv", "a")`: Mở file với chế độ `"a"` (append - nối thêm). Nếu file chưa có, nó sẽ được tạo ra. Nếu đã có, con trỏ sẽ được đặt ở cuối file để ghi thêm vào.
+    3.  `fprintf(f, ...)`: Ghi một dòng được định dạng theo kiểu CSV (các giá trị cách nhau bởi dấu phẩy).
+    4.  `fclose(f)`: Đóng file lại. Đây là bước quan trọng để đảm bảo dữ liệu được ghi xuống thẻ nhớ một cách an toàn.
+
+---
+### **3. Thuật ngữ RTOS và Các Tham số Quan trọng**
+---
+
+- **Semaphore và Mutex (Cơ chế đồng bộ hóa)**
+  - **Tóm tắt:** Cả hai đều là công cụ để kiểm soát việc truy cập vào các tài nguyên dùng chung (như biến `sys`). Tưởng tượng tài nguyên dùng chung là một phòng vệ sinh, và các Task là người muốn sử dụng.
+  - **Mutex (Mutual Exclusion - Loại trừ lẫn nhau):** Giống như một chiếc chìa khóa của phòng vệ sinh.
+    - Ai muốn vào phải lấy chìa khóa (`xSemaphoreTake`). Nếu chìa khóa đã có người cầm, người đến sau phải xếp hàng chờ.
+    - Người ở trong làm xong việc thì trả lại chìa khóa (`xSemaphoreGive`).
+    - **Đặc tính quan trọng:** Chỉ người đã lấy chìa khóa mới có quyền trả lại nó. Điều này làm cho Mutex trở nên an toàn để bảo vệ tài nguyên. Project này dùng Mutex (`xSemaphoreCreateMutex`) để bảo vệ struct `sys`.
+  - **Semaphore:** Tổng quát hơn. Nó giống như một quầy giữ xe có một số lượng thẻ xe nhất định.
+    - Task có thể "lấy" một thẻ xe (`xSemaphoreTake`) để thực hiện công việc. Nếu hết thẻ, Task phải chờ.
+    - Một Task khác có thể "trả" một thẻ xe (`xSemaphoreGive`), cho phép Task đang chờ tiếp tục.
+    - Semaphore thường được dùng để **ra hiệu (signaling)** giữa các Task, ví dụ: Task A xử lý xong dữ liệu và "give" một semaphore để báo cho Task B biết rằng dữ liệu đã sẵn sàng.
+
+- **Task (Nhiệm vụ):** Một hàm độc lập có vòng lặp `while(1)`, được hệ điều hành (RTOS) quản lý và cho chạy "song song" với các task khác.
+
+- **Scheduler (Bộ lập lịch):** Là trái tim của RTOS. Nó liên tục theo dõi trạng thái của tất cả các Task (Ready, Running, Blocked, Suspended) và quyết định Task nào sẽ được chạy trên CPU dựa vào độ ưu tiên.
+
+- **Priority (Độ ưu tiên):** Một con số gán cho mỗi Task.
+  - Trong project: `task_control` có ưu tiên là `5`, `task_ui` có ưu tiên là `3`.
+  - **Ý nghĩa:** Khi cả hai task `control` và `ui` đều sẵn sàng chạy, Bộ lập lịch sẽ **luôn luôn** chọn `task_control` để chạy trước vì nó có độ ưu tiên cao hơn. `task_ui` chỉ được chạy khi `task_control` đang trong trạng thái "Blocked" (ví dụ như đang gọi `vTaskDelay`).
+
+- **Core Pinning (Ghim Task vào lõi CPU):**
+  - ESP32 có 2 lõi CPU (Core 0 và Core 1).
+  - Lệnh `xTaskCreatePinnedToCore` cho phép bạn chỉ định một Task phải chạy trên một lõi cụ thể.
+  - Trong project: `task_control` được ghim vào Core 1, `task_ui` được ghim vào Core 0.
+  - **Lợi ích:** Việc này giúp phân bổ tải. Bạn có thể dành một lõi cho các tác vụ đòi hỏi phản ứng nhanh, tính toán nhiều (như điều khiển), và lõi còn lại cho các tác vụ ít quan trọng hơn (như giao diện).
+
+- **Watchdog Timer (Bộ giám sát):**
+  - Là một bộ đếm thời gian phần cứng độc lập.
+  - **Cách hoạt động:** Bạn "kích hoạt" nó và đăng ký một (hoặc nhiều) Task vào sự giám sát của nó. Các Task này có nghĩa vụ phải định kỳ gọi hàm `esp_task_wdt_reset()` để "reset" bộ đếm của watchdog. Nếu một Task bị treo và không reset được watchdog trong khoảng thời gian đã định (ở đây là 5000ms), watchdog sẽ cho rằng hệ thống đã bị lỗi và tự động khởi động lại toàn bộ con chip.
+  - Đây là một cơ chế cực kỳ hữu ích để tạo ra các sản phẩm có độ tin cậy cao, có khả năng tự phục hồi khi gặp lỗi phần mềm.
+
+- **Stack và Stack Size (Ngăn xếp và Kích thước ngăn xếp):**
+  - **Stack là gì?** Mỗi Task khi được tạo ra sẽ được cấp một vùng RAM riêng gọi là Stack. Vùng nhớ này được dùng để lưu các biến cục bộ của hàm, địa chỉ trả về khi gọi một hàm khác, v.v.
+  - **Stack Size:** Là kích thước của vùng RAM đó, được truyền vào khi tạo Task (ví dụ `4096` trong `xTaskCreate...`).
+  - **Tại sao nó quan trọng?** Nếu Task của bạn có nhiều biến, hoặc gọi các hàm phức tạp lồng nhau (như `printf`), nó sẽ cần nhiều bộ nhớ Stack. Nếu kích thước bạn cấp cho nó (`4096` bytes) không đủ, nó sẽ bị "tràn Stack" (Stack Overflow). Lỗi này sẽ ghi đè lên vùng nhớ của Task khác hoặc của hệ điều hành, gây ra các lỗi rất khó tìm và thường dẫn đến treo hệ thống. Chọn kích thước Stack đủ lớn là một trong những việc quan trọng nhất khi lập trình với RTOS.
