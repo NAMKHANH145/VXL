@@ -1,0 +1,240 @@
+Chào bạn, file VXL.c này là một ví dụ điển hình về cách lập trình trên ESP-IDF sử dụng hệ điều hành thời gian thực FreeRTOS. Nó khác hoàn toàn so với cách lập trình tuần tự trên Arduino (chạy setup() một lần rồi lặp mãi mãi trong loop()).
+
+Hãy cùng phân tích chi tiết từng phần nhé.
+
+==================================================
+1. TỔNG QUAN: ARDUINO vs ESP-IDF (FreeRTOS)
+==================================================
+
+- **Arduino:** Bạn có 2 hàm chính:
+  - `void setup()`: Chạy 1 lần duy nhất khi khởi động. Dùng để cài đặt, khởi tạo.
+  - `void loop()`: Chạy lặp đi lặp lại mãi mãi. Toàn bộ logic của bạn nằm trong này.
+  Mọi thứ chạy "tuần tự". Nếu bạn gọi `delay(1000)`, cả con chip sẽ "đứng hình" trong 1 giây, không làm gì khác.
+
+- **ESP-IDF (FreeRTOS):** Bạn có 1 hàm chính:
+  - `void app_main()`: Giống như `setup()`, nó cũng chỉ chạy 1 lần khi khởi động.
+  - **KHÔNG CÓ HÀM `loop()`**. Thay vào đó, trong `app_main()`, bạn sẽ tạo ra các "Task" (Nhiệm vụ).
+  - **Task là gì?** Hãy tưởng tượng mỗi Task là một hàm `loop()` riêng biệt, có thể chạy "song song" với các Task khác. ESP32 có 2 nhân, nên nó thực sự có thể chạy 2 Task cùng một lúc. Hệ điều hành FreeRTOS sẽ liên tục chuyển đổi giữa các Task, tạo ra cảm giác chúng đang chạy đồng thời.
+  - **Ví dụ:** Trong code này có 3 Task: `task_control` (bộ não xử lý chính), `task_ui` (chuyên lo giao diện LCD, nút bấm), `task_soft_start` (chuyên điều khiển quạt). Cả 3 cùng chạy một lúc: một task đọc cảm biến, một task cập nhật màn hình, một task điều chỉnh quạt. Đây là sức mạnh lớn nhất của ESP-IDF so với Arduino.
+
+==================================================
+PHẦN 1: GIẢI THÍCH CHI TIẾT #INCLUDE VÀ #DEFINE
+==================================================
+
+---
+### **Thư viện (`#include`)**
+---
+Đây là những "viên gạch" xây nên chương trình của bạn, mỗi file header chứa các khai báo cho một chức năng cụ thể.
+
+- `#include <stdio.h>`: **ST**an**D**ard **I**nput/**O**utput. Thư viện C tiêu chuẩn cho các hoạt động nhập/xuất, ví dụ:
+  - `snprintf()`: Dùng để tạo chuỗi ký tự có định dạng (rất nhiều trong `task_ui`).
+  - `fopen()`, `fprintf()`, `fclose()`: Dùng để làm việc với file trên thẻ nhớ SD.
+- `#include <string.h>`: Chứa các hàm xử lý chuỗi ký tự của C, ví dụ `strlen`, `strcpy`, `memset`.
+- `#include <sys/unistd.h>`
+- `#include <sys/stat.h>`: Các thư viện tương thích với chuẩn POSIX, được ESP-IDF hỗ trợ để làm việc với hệ thống file (VFS - Virtual File System).
+- `"esp_system.h"`: Cung cấp các chức năng cốt lõi của hệ thống ESP32, ví dụ `esp_restart()` để khởi động lại chip.
+- `"esp_log.h"`: Thư viện ghi log của ESP-IDF. Nó cho phép bạn in thông điệp ra cổng Serial với các cấp độ khác nhau (Info, Error, Warning, Debug) và gắn nhãn (`TAG`) để dễ theo dõi.
+- `"freertos/FreeRTOS.h"`: File header cơ bản nhất của FreeRTOS, định nghĩa các kiểu dữ liệu và macro cốt lõi.
+- `"freertos/task.h"`: Chứa các hàm liên quan đến Task:
+  - `xTaskCreate()`, `xTaskCreatePinnedToCore()`: Để tạo Task mới.
+  - `vTaskDelay()`: Để tạm dừng một Task.
+  - `xTaskGetTickCount()`: Lấy "số tích tắc" của hệ thống, dùng để đo thời gian.
+- `"freertos/semphr.h"`: **Semphr** là viết tắt của Semaphore. Chứa các hàm về Semaphore và Mutex, dùng để đồng bộ hóa và bảo vệ tài nguyên chia sẻ giữa các Task. Ví dụ: `xSemaphoreCreateMutex()`, `xSemaphoreTake()`, `xSemaphoreGive()`.
+- `"driver/gpio.h"`: **G**eneral **P**urpose **I**nput/**O**utput. Thư viện để điều khiển các chân GPIO: cài đặt chế độ (input/output), đọc/ghi giá trị.
+- `"driver/i2c.h"`: Thư viện cho giao tiếp **I**nter-**I**ntegrated **C**ircuit (I2C), dùng để nói chuyện với màn hình LCD và cảm biến SHT35.
+- `"driver/ledc.h"`: **LED C**ontrol. Đây là ngoại vi phần cứng của ESP32 chuyên dùng để tạo tín hiệu **PWM** một cách chính xác mà không tốn tài nguyên CPU.
+- `"esp_vfs_fat.h"`: **V**irtual **F**ile **S**ystem - **F**ile **A**llocation **T**able. Thư viện này giúp "dạy" cho ESP32 cách đọc/ghi định dạng file FAT/FAT32 trên các thiết bị lưu trữ như thẻ SD.
+- `"sdmmc_cmd.h"`: Chứa các định nghĩa lệnh giao tiếp với thẻ **SD** và **MMC**.
+- `"esp_timer.h"`: Cung cấp bộ đếm thời gian (timer) có độ phân giải cao (micro giây), dùng để lấy thời gian hoạt động của hệ thống (`esp_timer_get_time`).
+- `"esp_rom_sys.h"`: Chứa các hàm được lưu sẵn trong **ROM** của chip, ví dụ `esp_rom_delay_us()` để tạo độ trễ chính xác đến micro giây.
+- `"esp_task_wdt.h"`: **T**ask **W**atch**d**og **T**imer. Một cơ chế an toàn. Nếu một Task bị "treo" quá lâu, bộ watchdog sẽ tự động khởi động lại chip.
+
+---
+### **Hằng số (`#define`)**
+---
+- `#define TAG "VXL_FINAL"`: Đặt một "nhãn" là "VXL_FINAL" cho các thông điệp log từ file này.
+- **`PIN_...`**: Định nghĩa số của các chân GPIO được kết nối với phần cứng. Cách làm này giúp code dễ đọc và dễ thay đổi khi bạn đổi sơ đồ đi dây.
+- `#define PWM_FREQ 5000`: Đặt tần số PWM là 5000 Hz.
+- `#define PWM_RES LEDC_TIMER_10_BIT`: Đặt độ phân giải cho PWM là 10-bit. Nghĩa là giá trị duty cycle sẽ từ 0 đến 2^10 - 1 = 1023. Arduino `analogWrite` mặc định là 8-bit (0-255).
+- `#define PWM_CH_...`: Gán mỗi quạt PWM vào một "kênh" (channel) của bộ ngoại vi LEDC.
+- `#define FILTER_SAMPLES 10`: Số lượng mẫu lấy để tính trung bình trượt. Càng lớn thì giá trị càng mượt nhưng phản ứng càng chậm.
+- `#define AFTER_COOL_TIME_MS 45000`: Thời gian (45 giây) để chạy quạt sên sau khi ngừng chế độ hút ẩm, nhằm làm khô dàn lạnh.
+- `#define SOFT_START_STEP_MS 20`: Thời gian nghỉ giữa mỗi bước tăng/giảm PWM (20ms).
+- `#define LOG_INTERVAL_MS 10000`: Cứ 10 giây sẽ ghi dữ liệu xuống thẻ nhớ một lần.
+- `#define TEMP_...`: Các ngưỡng nhiệt độ để điều khiển.
+  - `TEMP_WATER_WARMUP 40.0f`: Nước phải nóng trên 40°C thì bơm mới chạy ở chế độ tạo ẩm.
+  - `TEMP_WATER_AUX_ON 60.0f`: Nước nóng trên 60°C thì bật quạt tản nhiệt vỏ phụ trợ.
+  - `TEMP_WATER_CRITICAL 70.0f`: Nước nóng trên 70°C là ngưỡng nguy hiểm, hệ thống sẽ vào chế độ bảo vệ.
+
+==================================================
+PHẦN 2: GIẢI THÍCH CHI TIẾT STRUCT VÀ BIẾN TOÀN CỤC
+==================================================
+
+- `SystemState_t`: Một `enum` (kiểu liệt kê) để định nghĩa các trạng thái hoạt động của máy một cách rõ ràng bằng tên thay vì bằng số.
+  - `STATE_IDLE`: Trạng thái nghỉ, không làm gì.
+  - `STATE_HUMIDIFY`: Trạng thái tạo ẩm (bật Peltier làm nóng nước, bật bơm khi đủ nóng).
+  - `STATE_DEHUMIDIFY`: Trạng thái hút ẩm (bật Peltier làm lạnh, bật quạt sên để hút không khí qua).
+  - `STATE_AFTER_COOL`: Trạng thái làm khô dàn lạnh sau khi hút ẩm.
+  - `STATE_PROTECT_ERR`: Trạng thái lỗi bảo vệ (khi nhiệt độ nước quá cao).
+
+- `MovingAvg_t`: Struct để thực hiện bộ lọc trung bình trượt (làm mượt tín hiệu).
+  - `float buf[FILTER_SAMPLES]`: Mảng để lưu các giá trị đo gần nhất.
+  - `int idx`: Vị trí (chỉ số) hiện tại trong mảng `buf`.
+  - `float sum`: Tổng của tất cả các giá trị trong `buf`, giúp tính trung bình nhanh hơn.
+  - `bool full`: Cờ báo hiệu mảng `buf` đã được điền đầy hay chưa.
+
+- `SharedData_t`: Struct quan trọng nhất, chứa tất cả dữ liệu "sống" của hệ thống.
+  - `float t_air`, `h_air`: Nhiệt độ, độ ẩm không khí (đã qua bộ lọc).
+  - `bool env_valid`: Cờ báo giá trị môi trường đọc từ SHT35 có hợp lệ không.
+  - `float t_water`: Nhiệt độ nước (đọc từ DS18B20).
+  - `bool water_valid`: Cờ báo giá trị nhiệt độ nước có hợp lệ không.
+  - `float target_hum`: Độ ẩm mục tiêu do người dùng cài đặt.
+  - `float hysteresis`: Ngưỡng dung sai (ví dụ: mục tiêu 75%, hysteresis 3% -> máy sẽ hút ẩm khi > 78% và tạo ẩm khi < 72%).
+  - `SystemState_t current_state`: Trạng thái hoạt động hiện tại của máy.
+  - `bool sd_mounted`: Cờ báo thẻ SD đã được nhận và sẵn sàng để ghi chưa.
+  - `uint32_t uptime_s`: Thời gian hoạt động (uptime) của hệ thống tính bằng giây (chưa được dùng trong code này).
+  - `bool edit_mode`: Cờ báo người dùng có đang ở chế độ chỉnh sửa cài đặt không.
+  - `int edit_item`: Cho biết người dùng đang chỉnh mục nào (0: Độ ẩm mục tiêu, 1: Hysteresis).
+
+- `static SharedData_t sys = {...}`: Khai báo một biến toàn cục tên là `sys` có kiểu `SharedData_t` và khởi tạo các giá trị ban đầu cho nó.
+- `static SemaphoreHandle_t mutex = NULL`: Khai báo biến `mutex`, sẽ được dùng làm "khóa" bảo vệ `sys`. Nó được khởi tạo là `NULL` và sẽ được tạo ra thực sự trong hàm `app_main`.
+- `static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED`: Khai báo một **spinlock**. Đây là một dạng khóa cấp rất thấp, nhanh hơn mutex, dùng để bảo vệ những đoạn code cực ngắn và yêu cầu thời gian thực. Trong code này, nó dùng để bảo vệ các thao tác bật/tắt GPIO trong driver 1-Wire, đảm bảo không có Task nào khác xen vào làm hỏng timing.
+- `static uint8_t lcd_addr = 0x27`, `sht_addr = 0x44`: Địa chỉ I2C của màn hình và cảm biến.
+- `static int tgt_duty_...`, `cur_duty_...`:
+  - `tgt_duty...`: **T**ar**g**e**t** (mục tiêu). Là giá trị PWM mà `task_control` muốn quạt chạy ở tốc độ đó.
+  - `cur_duty...`: **Cur**rent (hiện tại). Là giá trị PWM thực tế đang được cấp cho quạt. `task_soft_start` sẽ có nhiệm vụ thay đổi từ từ `cur_duty` cho đến khi nó bằng `tgt_duty`.
+
+==================================================
+PHẦN 3: GIẢI THÍCH CHI TIẾT CÁC HÀM "DRIVER"
+==================================================
+Đây là các hàm giao tiếp trực tiếp với phần cứng, thay thế cho các thư viện có sẵn của Arduino.
+
+- `init_hw(void)`: Khởi tạo phần cứng.
+  - Tương đương `pinMode()` trong Arduino, nhưng mạnh hơn.
+  - Nó tạo một struct `gpio_config_t` để định nghĩa một nhóm chân cùng lúc.
+  - `pin_bit_mask`: Dùng toán tử dịch bit `(1ULL << PIN_...)` để tạo một "mặt nạ bit", mỗi bit tương ứng với một chân GPIO. Cách này cho phép cấu hình nhiều chân trong một lệnh.
+  - Cấu hình các chân `PIN_PELTIER`, `PIN_PUMP`, `PIN_FAN_CIRC` là `GPIO_MODE_OUTPUT`.
+  - Cấu hình các chân nút nhấn là `GPIO_MODE_INPUT` và bật điện trở kéo lên (`pull_up_en=1`) vì nút nhấn được thiết kế kích âm (nối xuống GND khi nhấn).
+  - Khởi tạo PWM (LEDC): Cài đặt timer (`ledc_timer_config`) với tần số và độ phân giải đã định nghĩa, sau đó gán các kênh PWM (`ledc_channel_config`) vào các chân GPIO tương ứng.
+
+- `set_pwm(int ch, int duty)`: Hàm tiện ích để đặt giá trị PWM.
+  - `ledc_set_duty()`: Đặt giá trị duty cycle cho kênh `ch`.
+  - `ledc_update_duty()`: Lệnh này mới thực sự áp dụng giá trị duty cycle ra phần cứng.
+
+- **Driver 1-Wire (DS18B20)**: Tự viết lại giao thức 1-Wire bằng cách "bit-banging" (dùng GPIO bật tắt theo đúng timing).
+  - `ow_delay(int us)`: Gọi `esp_rom_delay_us(us)` để delay chính xác đến micro giây.
+  - `ow_reset()`: Gửi tín hiệu reset xuống bus 1-Wire.
+  - `ow_wr_bit(int b)`, `ow_rd_bit(void)`: Ghi và đọc một bit duy nhất. Đây là trái tim của giao thức.
+  - `ow_wr_byte(uint8_t d)`, `ow_rd_byte(void)`: Ghi và đọc một byte bằng cách gọi các hàm đọc/ghi bit 8 lần.
+  - `ds18b20_read(float *t)`: Thực hiện chuỗi lệnh để đọc nhiệt độ:
+    1. Reset bus.
+    2. Gửi lệnh `0xCC` (Skip ROM - bỏ qua địa chỉ, nói chuyện với tất cả cảm biến).
+    3. Gửi lệnh `0x44` (Convert T - yêu cầu cảm biến bắt đầu đo nhiệt độ).
+    4. Reset bus lần nữa.
+    5. Gửi lệnh `0xCC` (Skip ROM).
+    6. Gửi lệnh `0xBE` (Read Scratchpad - yêu cầu cảm biến gửi lại dữ liệu).
+    7. Đọc 2 byte dữ liệu thô và chuyển đổi sang nhiệt độ Celsius.
+  - `portENTER_CRITICAL(&spinlock)` và `portEXIT_CRITICAL(&spinlock)`: Các lệnh này dùng spinlock để **tắt hoàn toàn bộ lập lịch (scheduler)** của FreeRTOS trong một khoảnh khắc cực ngắn. Điều này đảm bảo các lệnh `gpio_set_direction`, `gpio_set_level` được thực thi với timing chính xác tuyệt đối, không bị một Task nào khác xen ngang. Đây là kỹ thuật bắt buộc khi làm việc với các giao thức yêu cầu timing nghiêm ngặt như 1-Wire.
+
+- `i2c_init_bus(void)`: Khởi tạo bus I2C.
+  - Tạo struct `i2c_config_t` để định nghĩa các chân SDA, SCL, chế độ Master, và tốc độ bus (100kHz).
+  - `i2c_param_config()` và `i2c_driver_install()`: Áp dụng cấu hình và cài đặt driver I2C cho bộ xử lý.
+
+- `sht_read(float *t, float *h)`: Đọc cảm biến SHT35.
+  - Gửi lệnh `0x2400` (đo một lần, độ chính xác cao) qua I2C.
+  - `vTaskDelay(20/portTICK_PERIOD_MS)`: Chờ 20ms để cảm biến hoàn tất việc đo.
+  - Đọc 6 byte dữ liệu trả về và dùng công thức trong datasheet để tính ra nhiệt độ, độ ẩm.
+
+- **Driver LCD I2C**: Tự viết lại giao thức điều khiển LCD Hitachi HD44780 qua I2C expander (PCF8574).
+  - `lcd_nib(uint8_t n, int rs)`: Gửi một "nibble" (4 bit) dữ liệu.
+  - `lcd_byte(uint8_t b, int rs)`: Gửi một byte bằng cách gọi `lcd_nib` hai lần.
+  - `lcd_cmd(uint8_t c)`: Gửi một lệnh (RS=0).
+  - `lcd_str(const char *s)`: Gửi một chuỗi ký tự để hiển thị (RS=1).
+  - `lcd_init_dev()`: Gửi chuỗi lệnh khởi tạo để đưa LCD vào chế độ hoạt động 4-bit.
+  - `lcd_pos(int r, int c)`: Di chuyển con trỏ đến vị trí hàng `r`, cột `c`.
+
+- `sd_init(void)`: Khởi tạo thẻ SD.
+  - Hàm này cấu hình rất nhiều struct: `sdmmc_host_t` (cấu hình bus SPI), `spi_bus_config_t` (cấu hình các chân SPI), `sdspi_device_config_t` (cấu hình chân CS).
+  - `esp_vfs_fat_sdspi_mount("/sdcard", ...)`: Đây là hàm quan trọng nhất. Nó bảo ESP-IDF: "Hãy dùng driver SPI để nói chuyện với thiết bị ở chân CS này, coi nó như một ổ đĩa FAT và đặt tên cho nó là `/sdcard`".
+  - Sau khi mount thành công, code sẽ kiểm tra file `log.csv` có tồn tại không. Nếu không, nó sẽ tạo file mới và ghi dòng tiêu đề vào.
+
+==================================================
+PHẦN 4: GIẢI THÍCH CHI TIẾT CÁC TASK
+==================================================
+
+---
+### **`task_soft_start(void *arg)` - Task Điều Khiển PWM Mềm Mại**
+---
+- **Mục đích:** Tránh việc bật/tắt quạt đột ngột gây sốc điện và tiếng ồn.
+- **Cách hoạt động:**
+  - `while(1)`: Vòng lặp vô tận.
+  - Bên trong vòng lặp, nó liên tục so sánh giá trị PWM hiện tại (`cur_duty_...`) và giá trị mục tiêu (`tgt_duty_...`).
+  - Nếu `cur < tgt`, nó sẽ tăng `cur` lên một chút (`+= 10`).
+  - Nếu `cur > tgt`, nó sẽ giảm `cur` xuống một chút (`-= 10`).
+  - Sau đó nó gọi `set_pwm()` để cập nhật giá trị `cur` mới ra phần cứng.
+  - `vTaskDelay(SOFT_START_STEP_MS / portTICK_PERIOD_MS)`: Nó nghỉ một chút (20ms) rồi mới lặp lại.
+- **Ảnh hưởng hệ thống:** Task này tạo ra hiệu ứng quạt tăng tốc và giảm tốc mượt mà. Nó chạy liên tục, không ngừng nghỉ, đảm bảo quạt luôn tiệm cận tốc độ mong muốn.
+
+---
+### **`task_control(void *arg)` - Task Bộ Não Điều Khiển**
+---
+- **Mục đích:** Thực hiện tất cả logic chính của máy.
+- **Cách hoạt động (`while(1)`):**
+  1.  `esp_task_wdt_...`: Khởi tạo và "thêm" task này vào sự giám sát của Watchdog Timer.
+  2.  `esp_task_wdt_reset()`: Ở mỗi đầu vòng lặp, nó "chọc" watchdog để báo "tôi vẫn còn sống, đừng reset". Nếu task này bị treo (ví dụ do lỗi code) và không gọi hàm này trong 5 giây, hệ thống sẽ tự khởi động lại. Đây là một cơ chế tự phục hồi rất mạnh mẽ.
+  3.  **Đọc cảm biến:** Gọi `sht_read()` và `ds18b20_read()` để lấy dữ liệu thô.
+  4.  **Lọc nhiễu:** Dùng các hàm `filter_add()` và `filter_get()` để có được giá trị nhiệt độ, độ ẩm ổn định hơn.
+  5.  **Cập nhật dữ liệu chia sẻ:** Dùng `xSemaphoreTake(mutex, ...)` để khóa `sys`, cập nhật các giá trị vừa đo được vào `sys`, rồi `xSemaphoreGive(mutex)` để mở khóa cho các task khác dùng.
+  6.  **Ghi log:** So sánh thời gian hiện tại và thời gian ghi log lần cuối. Nếu đã đủ `LOG_INTERVAL_MS` (10 giây), gọi `log_to_sd()` để ghi dữ liệu xuống file CSV.
+  7.  **Logic Chuyển Trạng Thái (State Machine):**
+      - Đây là phần phức tạp nhất. Nó kiểm tra trạng thái hiện tại và các điều kiện môi trường để quyết định trạng thái tiếp theo (`next`).
+      - **Ưu tiên cao nhất:** Kiểm tra quá nhiệt (`ovr_heat`). Nếu nhiệt độ nước > 70°C, nó sẽ ép hệ thống vào trạng thái `STATE_PROTECT_ERR` bất kể đang làm gì.
+      - **Logic phục hồi:** Nếu đang ở `STATE_PROTECT_ERR` và nhiệt độ đã giảm xuống dưới 60°C, nó sẽ cho phép hệ thống quay về `STATE_IDLE`.
+      - **Logic thông thường:** Dựa vào độ ẩm và `hysteresis` để quyết định chuyển từ `IDLE` sang `HUMIDIFY` hoặc `DEHUMIDIFY`.
+      - **Logic kết thúc:** Chuyển từ `HUMIDIFY`/`DEHUMIDIFY` về `IDLE` khi đã đạt mục tiêu. Đặc biệt, sau khi hút ẩm, nó sẽ chuyển sang `STATE_AFTER_COOL` thay vì về thẳng `IDLE`.
+  8.  **Logic Điều Khiển Đầu Ra:**
+      - Dùng `switch(next)` để thực thi hành động dựa trên trạng thái `next` vừa quyết định.
+      - `case STATE_HUMIDIFY`: Bật Peltier, và chỉ bật bơm nếu nước đã đủ nóng (`>= TEMP_WATER_WARMUP`).
+      - `case STATE_DEHUMIDIFY`: Bật Peltier, bật quạt sên (blower) tối đa.
+      - `case STATE_AFTER_COOL`: Chỉ chạy quạt sên để làm khô.
+      - **Logic Quạt Vỏ (`duty_c`):** Logic này chạy độc lập. Bất kể hệ thống đang ở trạng thái nào, nếu nước nóng hơn 60°C (`aux_cool`), quạt vỏ sẽ được bật tối đa.
+      - **Logic Cắt Tức Thì Quạt Sên:** Khi chuyển từ `STATE_DEHUMIDIFY` sang trạng thái khác, quạt sên (`blower`) được tắt ngay lập tức bằng cách gán `cur_duty_blower = 0`. Điều này để tránh thổi ngược hơi ẩm từ dàn lạnh ra ngoài.
+  9.  **Cập nhật trạng thái:** Khóa mutex, cập nhật `sys.current_state = next`, mở khóa mutex.
+  10. `vTaskDelay(500/portTICK_PERIOD_MS)`: Nghỉ 500ms trước khi bắt đầu chu kỳ tiếp theo.
+
+---
+### **`task_ui(void *arg)` - Task Giao Diện Người Dùng**
+---
+- **Mục đích:** Hiển thị thông tin lên LCD và nhận lệnh từ người dùng qua nút nhấn.
+- **Cách hoạt động (`while(1)`):**
+  1.  **Xử lý nút nhấn:**
+      - Đọc trạng thái 3 nút nhấn.
+      - `if(now - last_btn_time > 200)`: Đây là một kỹ thuật chống dội phím (debounce) đơn giản. Nó chỉ xử lý một lần nhấn nút sau mỗi 200ms.
+      - Dựa vào nút được nhấn để thay đổi các biến `sys.edit_mode`, `sys.target_hum`, `sys.hysteresis`.
+  2.  **Cập nhật hiển thị:**
+      - Khóa mutex để đọc các giá trị `t`, `h`, `w`, `st`... từ `sys` một cách an toàn.
+      - Dùng `snprintf` để tạo chuỗi ký tự định dạng sẵn.
+      - Dùng `lcd_pos` và `lcd_str` để hiển thị chuỗi lên màn hình.
+      - Logic `blink_sd`: Biến `blink_sd` đảo trạng thái mỗi chu kỳ, làm cho ký tự `*` nhấp nháy trên màn hình để báo hiệu thẻ SD đang hoạt động.
+  3.  `vTaskDelay(500/portTICK_PERIOD_MS)`: Nghỉ 500ms. Tốc độ làm tươi màn hình là 2Hz, đủ cho mắt người nhìn.
+
+==================================================
+PHẦN 5: GIẢI THÍCH CHI TIẾT HÀM APP_MAIN
+==================================================
+
+- **Mục đích:** Là hàm đầu tiên được chạy sau khi bootloader hoàn tất. Nó có vai trò tương tự `setup()` trong Arduino: khởi tạo hệ thống và khởi chạy các quy trình chính.
+- **Các bước thực thi:**
+  1.  `mutex = xSemaphoreCreateMutex()`: Tạo ra đối tượng Mutex. Từ đây, biến `mutex` mới thực sự có giá trị và có thể được dùng để khóa/mở khóa.
+  2.  `init_hw()`, `i2c_init_bus()`, `sd_init()`: Gọi các hàm đã phân tích ở Phần 3 để khởi tạo tất cả phần cứng cần thiết.
+  3.  `xTaskCreate(...)` và `xTaskCreatePinnedToCore(...)`: Đây là các lệnh "sinh" ra Task. Hãy phân tích các tham số của `xTaskCreatePinnedToCore(task_control, "ctrl", 4096, NULL, 5, NULL, 1)`:
+      - `task_control`: Con trỏ đến hàm sẽ được thực thi (chính là code của Task).
+      - `"ctrl"`: Tên của Task (dùng để debug).
+      - `4096`: Kích thước **stack** dành cho Task này, tính bằng byte. Stack là vùng nhớ để lưu các biến cục bộ của hàm. Nếu Task của bạn phức tạp, dùng nhiều biến, gọi nhiều hàm lồng nhau, bạn cần stack lớn. Nếu stack quá nhỏ, chương trình sẽ bị "Stack Overflow" và treo. Đây là một lỗi rất phổ biến khi lập trình ESP-IDF.
+      - `NULL`: Tham số truyền vào cho Task (ở đây không dùng).
+      - `5`: **Độ ưu tiên** của Task. Số càng cao, độ ưu tiên càng lớn. Nếu hai Task cùng muốn chạy, Task có độ ưu tiên cao hơn sẽ được chạy trước.
+      - `NULL`: Con trỏ để nhận lại "handle" của Task (ở đây không cần).
+      - `1`: **Ghim Task vào Core 1**. ESP32 có 2 core (0 và 1). Việc ghim task giúp đảm bảo các tác vụ quan trọng (như `task_control`) không bị gián đoạn bởi các tác vụ ít quan trọng hơn (như `task_ui`) chạy trên core còn lại.
+  4.  `ESP_LOGI(TAG, "RUNNING")`: In thông báo ra Serial để cho biết quá trình khởi tạo đã hoàn tất và các Task đã bắt đầu chạy.
+- **Kết thúc:** Sau khi các lệnh tạo Task được thực thi, hàm `app_main` sẽ kết thúc. Nhưng chương trình không dừng lại. Quyền điều khiển lúc này đã được trao hoàn toàn cho bộ lập lịch của FreeRTOS, và nó sẽ bắt đầu cho các Task đã tạo thay phiên nhau chạy.
+
+Hy vọng phần giải thích siêu chi tiết này giúp bạn hiểu rõ từng ngóc ngách của code!

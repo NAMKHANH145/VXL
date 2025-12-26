@@ -1,0 +1,13 @@
+ # Thư mục build (Nặng nhất, không được up lên)
+build/
+managed_components/
+dependencies.lock
+
+ # Các file cấu hình cá nhân
+sdkconfig.old
+*.log
+
+ # IDE settings (Tùy chọn, thường không nên up)
+.vscode/
+.idea/
+*.DS_Store

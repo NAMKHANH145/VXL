@@ -1,0 +1,203 @@
+================================================================================
+CẨM NANG LẮP ĐẶT CHI TIẾT TỪ A-Z (DÀNH CHO NGƯỜI MỚI BẮT ĐẦU)
+DỰ ÁN: HỆ THỐNG KIỂM SOÁT ĐỘ ẨM KHÉP KÍN (VXL-V2)
+Ngày cập nhật: 25/12/2025
+================================================================================
+
+Tài liệu này hướng dẫn bạn từng bước, từ khoan cắt hộp đến nối từng sợi dây điện. Hãy đọc kỹ và làm theo đúng trình tự.
+
+PHẦN I: CHUẨN BỊ VÀ DANH MỤC VẬT TƯ (BOM)
+--------------------------------------------------------------------------------
+A. Nhóm Điện - Điều Khiển & Công Suất
+- Vi xử lý ESP32 WROOM 32 chân.
+- Nguồn tổ ong 12V - 10A (Cấp nguồn tổng cho toàn hệ thống: Sò, Quạt, Bơm, ESP32).
+- 5x Module MOSFET D4184 (Điều khiển: Sò Peltier, Bơm khí, Quạt Sên, Quạt đối lưu, Quạt tản vỏ).
+- 1x Module Hạ áp DC-DC LM2596 (Hạ 12V xuống 5V nuôi ESP32).
+- 1x Cảm biến nhiệt độ DS18B20 (Vỏ inox, đo nhiệt độ nước).
+- 1x Cảm biến môi trường SHT35 (Đo nhiệt độ/độ ẩm buồng Mica).
+- 1x Màn hình LCD 1602 kèm mạch I2C.
+- 1x Module thẻ nhớ MicroSD (Giao tiếp SPI).
+- Dây điện đôi đỏ/đen 0.5mm, Jack nối.
+
+B. Nhóm Cơ Khí - Thủy Lực - Nhiệt
+- Combo Sò lạnh & Tản nhiệt V1 (Tháo rời lấy linh kiện: Sò 12706, Tản nhôm lớn/nhỏ, Quạt).
+- 1x Hộp nhôm kỹ thuật (Khoảng 80x50x26mm, làm buồng chứa nước nóng).
+- 1x Máy Bơm khí 370CD - 12V (Kèm ống ti-ô và đá sủi).
+- 1x Quạt Sên (Blower Fan) 5015 - 12V (Thổi khí qua tản lạnh).
+- 1x Quạt tản nhiệt vuông 4x4cm - 12V (Quạt đối lưu).
+- 1x Van một chiều (Chống nước chảy ngược về bơm).
+- 2m Ống ruột gà phi 21mm (Dẫn khí Loop giảm ẩm).
+- Keo tản nhiệt (MX4), Keo Silicone A500, Keo 704 (Chống rò nước), Dây rút, Băng dính bạc.
+
+================================================================================
+PHẦN II: THI CÔNG CƠ KHÍ & NGUYÊN LÝ HOẠT ĐỘNG
+================================================================================
+
+1. CẤU TẠO PHẦN CỨNG (SANDWICH 3 LỚP)
+Hệ thống bao gồm 3 lớp ép chặt nhau:
+- Lớp 1 (Lạnh): Tản nhiệt nhôm đặt trong đường ống gió tuần hoàn để ngưng tụ nước.
+- Lớp 2 (Trung tâm): Module Peltier.
+- Lớp 3 (Nóng): Hộp chứa nước bằng nhôm kín.
+  + Chức năng: Vừa là tản nhiệt cho mặt nóng Peltier, vừa là buồng tạo ẩm.
+  + Tản nhiệt phụ: Gắn thêm quạt tản nhiệt thổi vào vỏ ngoài hộp nhôm để xả nhiệt dư khi nước quá nóng (>60 độ C).
+
+2. THI CÔNG HỘP NƯỚC & KHOAN LỖ
+- Làm phẳng mặt đáy hộp nhôm (mài bỏ sơn/gờ) để áp sát sò.
+- Khoan lỗ đáy hộp: Khoan xuyên thủng tại các vị trí bắt vít tản nhiệt lạnh. Mài sạch ba-via.
+- Bôi keo tản nhiệt mỏng đều lên 2 mặt Sò Peltier.
+- Lắp ráp: Kẹp Sò vào giữa [Tản nhiệt lạnh] và [Đáy hộp nhôm]. Siết ốc chặt tay.
+- Chống rò nước: Dùng Keo 704 bơm phủ kín các đầu vít/đai ốc bên trong lòng hộp nước. Bơm keo kín các lỗ luồn dây/cảm biến trên nắp.
+
+3. GIẢI THÍCH LUỒNG KHÍ (AIRFLOW LOOPS)
+Hệ thống chia làm 2 đường ống độc lập:
+
+Loop Tăng ẩm (Dùng Bơm):
+- Khí từ hộp Mica -> Ống nhỏ (kèm theo bơm) -> Bơm -> Van một chiều -> Hộp nước nóng -> Sủi bọt -> Hộp Mica.
+- Lưu ý: Khoan lỗ trên nắp hộp nhôm vừa khít ống ti-ô. Đầu ống trong hộp gắn đá sủi chìm trong nước.
+
+Loop Giảm ẩm (Dùng Quạt Sên + Ống ruột gà):
+- Hộp Mica -> Ống ruột gà to -> Đầu hút Quạt Sên -> Thổi qua tản nhiệt Lạnh (ngưng tụ nước) -> Ống ruột gà to -> Trả về Hộp Mica.
+- Thi công: Dùng bìa Fomic làm hộp kín bao quanh tản nhiệt lạnh. Dùng băng dính bạc/keo nến gắn kín ống ruột gà vào quạt và hộp tản nhiệt.
+
+4. GIẢI PHÁP KỸ THUẬT (KHẮC PHỤC LỖI)
+- Chảy ngược: Lắp Van một chiều ngay đầu đường khí vào hộp nước.
+- Ngưng tụ trong ống: Dùng ống ngắn nhất có thể, bọc xốp cách nhiệt, bố trí dốc xuống.
+- Quá nhiệt/Cạn nước: Cảm biến DS18B20 gắn vào vỏ hộp. Code bảo vệ ngắt Sò nếu > 70 độ C.
+- Đóng băng mặt lạnh: Nếu đóng băng, tắt Sò nhưng vẫn chạy quạt gió để tan băng (Defrost).
+
+================================================================================
+PHẦN III: ĐẤU NỐI ĐIỆN (HÃY LÀM TỪ TỪ VÀ CẨN THẬN)
+================================================================================
+
+QUY TẮC MÀU DÂY (NÊN TUÂN THỦ):
+- Dây Đỏ: Dương nguồn (+), 12V hoặc 5V hoặc 3.3V.
+- Dây Đen: Âm nguồn (-), GND hoặc Mass.
+- Dây màu khác (Vàng/Xanh/Trắng): Tín hiệu điều khiển.
+
+BẢNG TRA CỨU NHANH (QUAN TRỌNG - XEM TẠI ĐÂY KHI NỐI DÂY):
++-----------------------+-----------+---------------------------------------+
+| THIẾT BỊ              | CHÂN ESP32| GHI CHÚ                               |
++-----------------------+-----------+---------------------------------------+
+| Sò Nóng Lạnh (Peltier)| GPIO 13   | Qua Module MOSFET 1                   |
+| Máy Bơm Khí           | GPIO 17   | Qua Module MOSFET 2                   |
+| Quạt Sên (Blower)     | GPIO 14   | Qua Module MOSFET 3                   |
+| Quạt Tản Vỏ (Case Fan)| GPIO 26   | Qua Module MOSFET 4                   |
+| Quạt Đối Lưu          | GPIO 27   | Qua Module MOSFET 5                   |
+| Cảm biến Nhiệt Nước   | GPIO 4    | Dây Vàng (Cần trở 4.7k lên 3.3V)      |
+| Màn hình LCD          | 21 (SDA)  | Dùng chung đường I2C                  |
+|                       | 22 (SCL)  |                                       |
+| Cảm biến SHT35        | 21 (SDA)  | Dùng chung đường I2C                  |
+|                       | 22 (SCL)  |                                       |
+| Thẻ Nhớ MicroSD       | 5 (CS)    |                                       |
+|                       | 23 (MOSI) |                                       |
+|                       | 19 (MISO) |                                       |
+|                       | 18 (CLK)  |                                       |
+| Nút Nhấn MODE         | GPIO 32   | Một chân vào GPIO, chân kia vào GND   |
+| Nút Nhấn TĂNG (UP)    | GPIO 33   | Một chân vào GPIO, chân kia vào GND   |
+| Nút Nhấn GIẢM (DOWN)  | GPIO 25   | Một chân vào GPIO, chân kia vào GND   |
++-----------------------+-----------+---------------------------------------+
+
+BƯỚC 1: CẤP NGUỒN CHÍNH (NGUỒN TỔ ONG 12V)
+1. Cắm dây nguồn 220V vào chân L và N của nguồn tổ ong. (CHƯA CẮM ĐIỆN LƯỚI).
+2. Đầu ra V+ là Dương 12V. Đầu ra V- (hoặc COM) là Âm 12V.
+
+BƯỚC 2: CẤP NGUỒN CHO VI XỬ LÝ (ESP32)
+1. Dùng Module Hạ áp LM2596:
+   - Nối IN+ vào 12V (V+ tổ ong).
+   - Nối IN- vào GND (V- tổ ong).
+2. CHỈNH ÁP (BẮT BUỘC):
+   - Cấp điện nguồn tổ ong. Dùng tua vít xoay biến trở màu xanh trên LM2596.
+   - Dùng đồng hồ đo đầu ra OUT+ và OUT-. Xoay đến khi đồng hồ chỉ đúng 5V (hoặc 5.1V).
+   - Ngắt điện.
+3. Nối vào ESP32:
+   - Nối OUT+ (5V) vào chân VIN (hoặc 5V) của ESP32.
+   - Nối OUT- (0V) vào chân GND của ESP32.
+
+BƯỚC 3: ĐẤU NỐI 5 MODULE MOSFET (D4184)
+Đây là "Công tắc điện tử". Mỗi module có 3 phía nối dây:
+- Phía Power (DC+/DC-): Nối vào nguồn to.
+- Phía Load (OUT+/OUT-): Nối ra thiết bị.
+- Phía Signal (PWM/GND): Nối vào ESP32.
+
+Lần lượt đấu cho 5 thiết bị sau:
+
+1. SÒ NÓNG LẠNH (PELTIER)
+   - Module MOSFET số 1.
+   - Signal: Chân PWM nối GPIO 13 (ESP32). Chân GND nối GND (ESP32).
+   - Power: DC+ nối 12V. DC- nối GND (Tổ ong).
+   - Load: OUT+ nối dây Đỏ sò. OUT- nối dây Đen sò.
+
+2. MÁY BƠM KHÍ (PUMP)
+   - Module MOSFET số 2.
+   - Signal: Chân PWM nối GPIO 17 (Tránh dùng GPIO 12 vì dễ lỗi boot). Chân GND nối GND.
+   - Power: DC+ nối 12V. DC- nối GND.
+   - Load: OUT+ nối dây Đỏ bơm. OUT- nối dây Đen bơm.
+
+3. QUẠT SÊN (BLOWER) - LOẠI 2 DÂY
+   - Module MOSFET số 3.
+   - Signal: Chân PWM nối GPIO 14. Chân GND nối GND.
+   - Power & Load: Tương tự trên.
+
+4. QUẠT TẢN VỎ (CASE FAN - LÀM MÁT HỘP NƯỚC)
+   - Module MOSFET số 4.
+   - Signal: Chân PWM nối GPIO 26.
+   - Power & Load: Tương tự trên.
+
+5. QUẠT ĐỐI LƯU (CIRCULATION FAN)
+   - Module MOSFET số 5.
+   - Signal: Chân PWM nối GPIO 27.
+   - Power & Load: Tương tự trên.
+
+BƯỚC 4: ĐẤU NỐI CẢM BIẾN & MÀN HÌNH (ĐIỆN ÁP THẤP)
+
+1. Cảm biến Nhiệt độ Nước (DS18B20) - Có 3 dây: Đỏ, Đen, Vàng (hoặc Trắng).
+   - Nối Đỏ vào chân 3V3 (3.3V) của ESP32.
+   - Nối Đen vào chân GND của ESP32.
+   - Nối Vàng vào chân GPIO 4 của ESP32.
+   - QUAN TRỌNG: Bạn cần nối 1 con điện trở 4.7k Ohm (Vàng-Đỏ-Đỏ-Nâu) nằm giữa dây Đỏ và dây Vàng. Nếu không có trở này, cảm biến sẽ không chạy.
+
+2. Cảm biến SHT35 và Màn hình LCD 1602 (I2C):
+   - Nối VCC của cả 2 vào: 3.3V (SHT35) và 5V (LCD).
+   - Nối GND của cả 2 vào GND ESP32.
+   - Nối chân SDA của cả 2 chụm lại -> vào GPIO 21.
+   - Nối chân SCL của cả 2 chụm lại -> vào GPIO 22.
+
+3. Module Thẻ nhớ MicroSD (SPI):
+   - VCC -> 5V. GND -> GND.
+   - CS -> GPIO 5.
+   - MOSI -> GPIO 23.
+   - MISO -> GPIO 19.
+   - CLK (SCK) -> GPIO 18.
+
+BƯỚC 5: ĐẤU NỐI 3 NÚT NHẤN (ĐIỀU KHIỂN)
+Dùng loại nút nhấn nhả 2 chân hoặc 4 chân.
+Cách đấu đơn giản nhất (Kích âm):
+- Chân 1 của nút: Nối vào GND.
+- Chân 2 của nút: Nối vào chân GPIO.
+
+- Nút MODE (Chế độ): Nối vào GPIO 32.
+- Nút UP (Tăng): Nối vào GPIO 33.
+- Nút DOWN (Giảm): Nối vào GPIO 25.
+
+================================================================================
+PHẦN IV: KIỂM TRA & VẬN HÀNH
+================================================================================
+1. Kiểm tra lần cuối: Rà soát xem có dây dương (Đỏ) nào chạm dây âm (Đen) không. Các mối nối đã băng kín chưa?
+2. Chuẩn bị thẻ nhớ: Format thẻ nhớ định dạng FAT32 trước khi cắm vào.
+3. Đổ nước: Châm nước vào hộp nhôm (khoảng 3/4 hộp).
+4. Cắm điện:
+   - Màn hình LCD sáng lên.
+   - Dòng 1 hiện: T:xx.x H:xx.x IDL (Nhiệt độ/Độ ẩm phòng).
+   - Dòng 2 hiện: W:xx.x S:75 (Nhiệt độ nước).
+5. Thử nút bấm:
+   - Nhấn MODE: Màn hình chuyển sang "SETTING MODE".
+   - Nhấn UP/DOWN: Số 75 (Target) tăng giảm.
+   - Nhấn MODE lần nữa để lưu và thoát.
+6. Thẻ nhớ:
+   - Hệ thống sẽ tự động tạo file `log.csv` và ghi dữ liệu mỗi 10 giây.
+
+CHÚC MỪNG! BẠN ĐÃ HOÀN THÀNH HỆ THỐNG.
+Nếu gặp lỗi "SENSOR ERROR" hoặc màn hình không lên:
+- Rút điện ngay.
+- Kiểm tra lại các dây nối GND (Dây mát) xem đã nối chung hết chưa.
+- Kiểm tra điện trở 4.7k ở cảm biến DS18B20.
