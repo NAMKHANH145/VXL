@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "driver/i2c.h"
+#include "driver/gpio.h"
+
+#include "config.h"
+#include "lcd.h"
+#include "pwm.h"
+#include "button.h"
+#include "ds18b20.h"
+
+#define TAG "VXL_SIMPLE"
+
+// Operation modes
+typedef enum {
+    MODE_DEHUMIDIFY = 0,  // Giảm ẩm
+    MODE_HUMIDIFY = 1     // Tăng ẩm
+} Mode_t;
+
+// === I2C INIT ===
+static void init_i2c(void) {
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
+    i2c_param_config(I2C_MASTER_NUM, &conf);
+    i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
+}
+
+// === SET MODE: Apply actuators ONLY (NO LCD INTERACTION) ===
+static void set_mode(Mode_t mode) {
+    // Chỉ điều khiển phần cứng, không đụng vào LCD để tránh nhiễu
+    if (mode == MODE_HUMIDIFY) {
+        // TĂNG ẨM
+        ESP_LOGI(TAG, "MODE: TĂNG ẨM (Actuators Applied)");
+        mosfet_set_pump(true);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        pwm_set_peltier(1023, 800);
+        pwm_set_blower(0, 800);
+        pwm_set_case(0, 800);
+        pwm_set_circ(1023, 800);
+    } else {
+        // GIẢM ẨM
+        ESP_LOGI(TAG, "MODE: GIẢM ẨM (Actuators Applied)");
+        mosfet_set_pump(false);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        pwm_set_peltier(716, 800);
+        pwm_set_blower(600, 800);
+        pwm_set_case(1023, 800);
+        pwm_set_circ(1023, 800);
+    }
+    // Loại bỏ hoàn toàn đoạn reset I2C và LCD ở đây
+}
+
+void app_main(void) {
+    ESP_LOGI(TAG, "=== SIMPLE DUAL MODE: MINIMAL LCD === ");
+    
+    // === INIT HARDWARE ===
+    init_i2c();
+    
+    // LCD Init (Chỉ làm 1 lần duy nhất lúc khởi động yên tĩnh)
+    bool lcd_ok = false;
+    if (lcd_init() == ESP_OK) {
+        lcd_ok = true;
+        ESP_LOGI(TAG, "LCD Init OK");
+        
+        // Setup Giao diện tĩnh (Chỉ in 1 lần)
+        lcd_clear();
+        lcd_put_cur(0, 0);
+        lcd_send_string("TEMP WATER:"); // In cố định dòng 1
+    } else {
+        ESP_LOGW(TAG, "LCD Init Failed");
+    }
+    
+    mosfet_init();
+    ds18b20_init(PIN_DS18B20);
+    button_init(PIN_BTN_DOWN); // GPIO 25
+
+    ESP_LOGI(TAG, "Waiting 2s for sensors...");
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    // === INIT STATE ===
+    Mode_t mode = MODE_DEHUMIDIFY;
+    set_mode(mode);
+    
+    // Variables
+    uint32_t mode_hold_counter = 0;
+    uint32_t release_glitch_counter = 0;
+    bool mode_action_taken = false;
+    const uint32_t HOLD_TIME_MS = 2000;
+    
+    float temp = 0.0f;
+    bool temp_ok = false;
+    uint32_t last_sensor = 0;
+    uint32_t last_lcd = 0;
+    
+    // === MAIN LOOP ===
+    while (1) {
+        uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+        
+        // 1. BUTTON CHECK (Giữ nguyên logic cũ)
+        if (button_is_down(PIN_BTN_DOWN)) {
+            release_glitch_counter = 0;
+            if (!mode_action_taken) {
+                mode_hold_counter += 50;
+                if (mode_hold_counter % 500 == 0) ESP_LOGI(TAG, "Holding... %lu ms", mode_hold_counter);
+                
+                if (mode_hold_counter >= HOLD_TIME_MS) {
+                    mode = (mode == MODE_DEHUMIDIFY) ? MODE_HUMIDIFY : MODE_DEHUMIDIFY;
+                    set_mode(mode); // Chỉ đóng ngắt rơ le, không in LCD
+                    mode_action_taken = true;
+                }
+            }
+        } else {
+            release_glitch_counter++;
+            if (release_glitch_counter > 3) {
+                 mode_hold_counter = 0;
+                 mode_action_taken = false;
+            }
+        }
+        
+        // 2. SENSOR READ (Mỗi 3s)
+        if (now - last_sensor >= 3000) {
+            last_sensor = now;
+            ds18b20_trigger_conversion();
+        }
+        
+        // Đọc sau 800ms
+        static bool sensor_triggered = false;
+        static uint32_t sensor_trigger_time = 0;
+        
+        if (!sensor_triggered && now - last_sensor < 900 && now >= last_sensor) {
+            sensor_triggered = true;
+            sensor_trigger_time = now;
+        }
+        
+        if (sensor_triggered && (now - sensor_trigger_time >= 800)) {
+            esp_err_t ret = ds18b20_read_temp(&temp);
+            temp_ok = (ret == ESP_OK);
+            sensor_triggered = false;
+            if (temp_ok) ESP_LOGI(TAG, "Temp: %.1fC", temp);
+        }
+        
+        // 3. LCD UPDATE (Chỉ cập nhật số, không xóa màn hình, mỗi 1s)
+        if (lcd_ok && (now - last_lcd >= 1000)) {
+            last_lcd = now;
+            char temp_str[16];
+            
+            // Chỉ di chuyển con trỏ đến đúng vị trí số và in đè lên
+            // Dòng 0: "TEMP WATER:" (Giữ nguyên)
+            // Dòng 1: "    29.5 C    " (In vào giữa)
+            
+            lcd_put_cur(1, 4); // Di chuyển đến dòng 2, ký tự thứ 5
+            
+            if (temp_ok) {
+                snprintf(temp_str, sizeof(temp_str), "%.1f C", temp);
+            } else {
+                snprintf(temp_str, sizeof(temp_str), "--.- C");
+            }
+            
+            lcd_send_string(temp_str);
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}

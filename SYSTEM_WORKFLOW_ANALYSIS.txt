@@ -1,0 +1,1866 @@
+# PHÂN TÍCH HỆ THỐNG & ĐẶC TẢ KỸ THUẬT (SYSTEM WORKFLOW ANALYSIS)
+
+**Dự án:** Hệ thống Ổn định Độ ẩm Chính xác Cao (VXL Project)
+
+**Phiên bản:** 6.1 (Final Stable - Cleaned & Optimized)
+
+**Ngày cập nhật:** 02/02/2026
+
+
+
+---
+
+
+
+## 1. TỔNG QUAN KIẾN TRÚC PHẦN MỀM (SOFTWARE ARCHITECTURE)
+
+
+
+Hệ thống được thiết kế theo mô hình **Super Loop Architecture (Vòng lặp Tuần tự)**, tối ưu hóa cho sự ổn định EMI và tính xác định thời gian thực mềm (Soft Real-time).
+Toàn bộ cấu hình (Pin, Timing, Thresholds) đã được tập trung hóa tại `config.h`.
+
+
+
+### Sơ đồ Luồng Chính (`main/VXL.c`):
+
+`System Boot` -> `Init Hardware (I2C, LCD, PWM, GPIO)` -> `While(1) Loop (10Hz)`:
+
+   1. `Fast Sampling (250ms)`: Đọc SHT35 -> Lọc Moving Average (Window 20).
+
+   2. `Control Logic (FSM)`: So sánh Sensor Data vs Setpoint -> Điều khiển PWM Actuators.
+
+   3. `Buffer Logging (5s)`: Lưu dữ liệu vào Static RAM Buffer (12KB) tại BSS.
+
+   4. `Bulk Flush (15min)`: Ghi khối dữ liệu từ RAM xuống SD Card (SPI) để tối ưu độ trễ.
+
+   5. `UI/Button Handling`: Xử lý nút nhấn (Polling 10Hz) & Chống nhiễu (3s Hold).
+
+
+
+---
+
+
+
+## 2. PHÂN TÍCH CHI TIẾT & CÂU HỎI BẢO VỆ (DEEP DIVE & VIVA VOCE)
+
+
+
+### MODULE 1: GPIO & BUTTON (`button.c`)
+
+**Kiến thức liên quan:** Thanh ghi GPIO, Input Mode, Pull-up/Pull-down, Polling vs Interrupt.
+
+
+
+**Q1: Tại sao phải cấu hình Pull-up (`GPIO_PULLUP_ENABLE`) cho nút nhấn nối đất (Active-Low)?**
+
+*   **A:** Khi nút chưa nhấn (hở mạch), chân GPIO ở trạng thái thả nổi (Floating - High Impedance Z). Nó hoạt động như anten thu nhiễu điện từ, làm mức logic nhảy loạn xạ 0/1. Điện trở Pull-up giúp ghim mức điện áp lên VCC (Logic 1) khi hở mạch. Khi nhấn, nút nối xuống GND thắng dòng qua trở, kéo về Logic 0.
+
+
+
+**Q2: Thanh ghi nào dùng để đọc trạng thái nút nhấn?**
+
+*   **A:** Thanh ghi `GPIO_IN_REG`. CPU sẽ đọc bit tương ứng tại thanh ghi này để biết mức điện áp tức thời ở chân IO.
+
+
+
+**Q3: Tại sao dùng Polling (Quét vòng) thay vì Ngắt (Interrupt) cho nút nhấn trong môi trường này?**
+
+*   **A:** Trong môi trường nhiễu công nghiệp (Peltier/Pump), xung nhiễu có thể kích hoạt ngắt liên tục (Interrupt Storm), làm CPU bị treo vì mải xử lý ngắt (ISR Starvation). Polling với tốc độ 10Hz kết hợp lọc phần mềm an toàn hơn.
+
+
+
+**Q4: Bit-mask `(1ULL << pin)` có ý nghĩa gì khi cấu hình GPIO?**
+
+*   **A:** ESP32 có 40 GPIO, cần 64-bit (unsigned long long) để biểu diễn mặt nạ (mask). Phép dịch bit này tạo ra một chuỗi bit chỉ có vị trí thứ `pin` là 1, để ghi vào thanh ghi cấu hình `GPIO_ENABLE_REG` hoặc `GPIO_PIN_MUX`.
+
+
+
+**Q5: Hiện tượng "Bouncing" (Rung phím) là gì và bạn xử lý thế nào?**
+
+*   **A:** Là hiện tượng tiếp điểm cơ khí va đập gây ra chuỗi tín hiệu 0-1-0-1 trong vài ms đầu. Em xử lý bằng Software Debounce: Chỉ chấp nhận tín hiệu nếu nó ổn định trong >50ms (dựa trên `esp_timer_get_time`).
+
+
+
+**Q6: Thanh ghi nào quyết định độ rộng xung (Duty Cycle) của PWM?**
+
+*   **A:** Trong bộ LEDC của ESP32, đó là thanh ghi `LEDC_DUTY_x`. Giá trị trong thanh ghi này được so với bộ đếm Timer để quyết định khi nào đầu ra chuyển mức.
+
+
+
+**Q7: Tại sao nút nhấn lại cần giữ 3 giây (30 chu kỳ) mới nhận lệnh Mode?**
+
+*   **A:** Đây là bộ lọc thông thấp (Low-pass filter) bằng phần mềm cực mạnh. Các xung nhiễu EMI thường rất ngắn (µs đến ms). Việc giữ 3s đảm bảo 100% đó là hành vi con người.
+
+
+
+**Q8: Tốc độ lấy mẫu nút nhấn (Polling rate) ảnh hưởng thế nào đến trải nghiệm?**
+
+*   **A:** Nếu quá chậm (>200ms) sẽ gây cảm giác trễ (lag). Nếu quá nhanh (<10ms) lãng phí CPU. 100ms (10Hz) là mức cân bằng tốt.
+
+
+
+**Q9: Nếu không dùng trở kéo nội (Internal Pull-up), ta cần linh kiện gì bên ngoài?**
+
+*   **A:** Cần một điện trở vật lý (thường 4.7k - 10k Ohm) nối từ chân GPIO lên nguồn 3.3V.
+
+
+
+**Q10: Làm sao để đọc nhiều nút nhấn cùng lúc mà không bị chặn (blocking)?**
+
+*   **A:** Dùng máy trạng thái (State Machine) cho từng nút, lưu trạng thái vào struct riêng biệt và quét lần lượt trong vòng lặp chính không delay.
+
+
+
+---
+
+
+
+### MODULE 2: I2C BUS (SHT35 & LCD)
+
+**Kiến thức liên quan:** Giao thức chuẩn, Open-Drain, Clock Stretching, CRC, Địa chỉ Slave.
+
+
+
+**Q1: Tại sao I2C bus cần điện trở kéo lên (Pull-up Resistors) trên đường SDA và SCL?**
+
+*   **A:** Cấu trúc ngõ ra của I2C là **Open-Drain** (Cực máng hở). Các thiết bị chỉ có thể kéo dây xuống mức thấp (GND), không thể đẩy lên mức cao. Điện trở kéo lên giúp đưa dây về mức cao khi rảnh (Idle). Điều này giúp tránh ngắn mạch khi nhiều thiết bị cùng truyền (Wired-AND logic).
+
+
+
+**Q2: Tần số 20kHz ảnh hưởng gì đến thanh ghi cấu hình I2C Clock?**
+
+*   **A:** Thanh ghi `I2C_SCL_LOW_PERIOD_REG` và `I2C_SCL_HIGH_PERIOD_REG` sẽ được nạp giá trị lớn hơn rất nhiều so với chuẩn 100kHz/400kHz. Chu kỳ xung clock dài ra (50µs) giúp tín hiệu ổn định hơn trên đường dây dài.
+
+
+
+**Q3: CRC-8 trong cảm biến SHT35 hoạt động dựa trên nguyên lý toán học nào?**
+
+*   **A:** Phép chia đa thức nhị phân (Polynomial Division) trên trường Galois GF(2). Dữ liệu là số bị chia, đa thức `x^8 + x^5 + x^4 + 1` (0x31) là số chia. Phần dư chính là CRC.
+
+
+
+**Q4: Lệnh `0x2400` gửi cho SHT35 có cấu trúc thế nào?**
+
+*   **A:** `0x24` là MSB (Command ID), `0x00` là LSB (Settings: High Repeatability, No Clock Stretching). Đây là 2 byte dữ liệu được ghi vào thanh ghi lệnh của SHT35.
+
+
+
+**Q5: Clock Stretching là gì và tại sao ta tắt nó (`No Stretch`)?**
+
+*   **A:** Là cơ chế Slave kéo chân SCL xuống thấp để bắt Master chờ. Trong môi trường nhiễu, Master có thể hiểu nhầm nhiễu là Clock Stretching và chờ mãi mãi (Deadlock). Tắt đi và dùng Delay cố định (50ms) an toàn hơn.
+
+
+
+**Q6: Quy trình khởi tạo LCD 4-bit (Nibble mode) diễn ra thế nào?**
+
+*   **A:** Gửi 3 lần lệnh `0x30` để reset mềm -> Gửi lệnh `0x20` để chuyển sang 4-bit -> Sau đó gửi các byte dữ liệu tách làm đôi (4-bit cao trước, 4-bit thấp sau).
+
+
+
+**Q7: Tại sao cần delay giữa các lệnh gửi xuống LCD?**
+
+*   **A:** Bộ điều khiển HD44780 bên trong LCD hoạt động chậm (tốc độ vài chục kHz). Nếu ESP32 (240MHz) gửi lệnh liên tục, bộ đệm của LCD sẽ bị tràn (Overflow) và mất chữ.
+
+
+
+**Q8: Bit ACK/NACK nằm ở đâu trong khung truyền I2C?**
+
+*   **A:** Nằm ở xung clock thứ 9. Trong xung này, Master thả dây SDA, nếu Slave kéo SDA xuống thấp -> ACK (Đã nhận). Nếu SDA vẫn cao -> NACK (Lỗi/Không thấy).
+
+
+
+**Q9: PCF8574 đóng vai trò gì trong module LCD?**
+
+*   **A:** Nó là bộ chuyển đổi nối tiếp sang song song (Serial-to-Parallel Expander). Nó nhận 1 byte từ I2C và xuất ra 8 chân IO (P0-P7) để điều khiển các chân D4-D7, RS, RW, EN của màn hình.
+
+
+
+**Q10: Làm sao để ghi dữ liệu vào SHT35 rồi đọc ra ngay sau đó?**
+
+*   **A:** Quy trình: Start -> Addr+Write -> Command -> Stop -> Delay(50ms) -> Start -> Addr+Read -> Read 6 Bytes -> Stop.
+
+
+
+---
+
+
+
+### MODULE 3: PWM & TIMER (`pwm.c`)
+
+**Kiến thức liên quan:** Timer/Counter, Duty Cycle, Resolution, MOSFET Driver.
+
+
+
+**Q1: Thanh ghi nào quyết định độ rộng xung (Duty Cycle) của PWM?**
+
+*   **A:** Trong bộ LEDC của ESP32, đó là thanh ghi `LEDC_DUTY_x`. Giá trị trong thanh ghi này được so với bộ đếm Timer để quyết định khi nào đầu ra chuyển mức.
+
+
+
+**Q2: Độ phân giải 10-bit nghĩa là gì?**
+
+*   **A:** Nghĩa là một chu kỳ xung được chia thành $2^{10} = 1024$ khoảng thời gian nhỏ (ticks). Ta có thể điều chỉnh độ rộng xung từ 0 đến 1023 bước.
+
+
+
+**Q3: Tần số 1kHz được tạo ra như thế nào từ xung Clock hệ thống (APB Clock 80MHz)?**
+
+*   **A:** Thông qua bộ chia tần (Prescaler). Công thức: $F_{PWM} = \frac{F_{APB}}{Prescaler \times 2^{Resolution}}$. Vi điều khiển sẽ tự tính giá trị Prescaler để ghi vào thanh ghi chia tần.
+
+
+
+**Q4: Tại sao tần số PWM cao (>5kHz) lại gây nóng MOSFET khi dùng Opto PC817?**
+
+*   **A:** PC817 có thời gian tắt (Fall time) chậm (~18µs). Ở tần số cao, chu kỳ ngắn, Opto chưa kịp tắt hẳn thì đã phải bật lại. Điều này làm cực Gate của MOSFET lơ lửng ở vùng tuyến tính (Linear Region), nơi $R_{DS(on)}$ lớn -> Tỏa nhiệt $P = I^2 R$.
+
+
+
+**Q5: Soft-Start (Fade) hoạt động thế nào về mặt phần cứng?**
+
+*   **A:** Phần cứng LEDC có bộ "Duty Cycle Fader". Khi kích hoạt, nó tự động tăng/giảm giá trị thanh ghi Duty theo từng bước (Step) sau mỗi khoảng thời gian (Cycle count) mà không cần CPU can thiệp từng bước.
+
+
+
+**Q6: Dead-time là gì và tại sao quan trọng (dù bài này chưa dùng H-Bridge)?**
+
+*   **A:** Là khoảng thời gian nghỉ giữa lúc tắt Transistor này và bật Transistor kia trong cầu H. Dù bài này chỉ dùng Low-side switch, nhưng tư duy về thời gian chuyển mạch (Switching time) là tương tự.
+
+
+
+**Q7: Tại sao Bơm (Pump) dùng GPIO Output thay vì PWM?**
+
+*   **A:** Do đặc tính tải. Bơm rung/Solenoid quán tính lớn, không đáp ứng được tần số PWM. Hơn nữa, Relay/MOSFET lái bơm thường thiết kế cho chế độ On/Off bão hòa hoàn toàn.
+
+
+
+**Q8: Làm thế nào để tắt khẩn cấp toàn bộ PWM?**
+
+*   **A:** Ghi giá trị 0 vào tất cả các thanh ghi Duty và gọi lệnh `ledc_update_duty` ngay lập tức. Hoặc vô hiệu hóa Timer.
+
+
+
+**Q9: Lợi ích của việc dùng Timer phần cứng so với Bit-banging PWM bằng phần mềm?**
+
+*   **A:** Timer phần cứng chạy độc lập, không tốn tài nguyên CPU, xung cực kỳ ổn định (Jitter thấp). Bit-banging tốn CPU và xung bị méo nếu CPU bận xử lý việc khác.
+
+
+
+**Q10: Dòng khởi động (Inrush Current) là gì và Soft-start giúp gì?**
+
+*   **A:** Là dòng điện cực đại khi mới cấp điện cho tải dung/cảm (như tụ điện, động cơ). Soft-start tăng từ từ Duty Cycle -> Tăng từ từ điện áp trung bình -> Giới hạn dòng Inrush, bảo vệ nguồn và MOSFET.
+
+
+
+---
+
+
+
+### MODULE 4: BỘ NHỚ & BUFFERING (`VXL.c` & `sd.c`)
+
+**Kiến thức liên quan:** RAM (Stack/Heap/BSS), SPI, FATFS, Write Latency.
+
+
+
+**Q1: Biến `s_sd_buffer[12288]` nằm ở vùng nhớ nào?**
+
+*   **A:** Do khai báo `static` toàn cục, nó nằm ở vùng **BSS** (Block Started by Symbol) hoặc Data Segment của RAM, được cấp phát cố định khi khởi động và tồn tại suốt vòng đời chương trình.
+
+
+
+**Q2: Tại sao không khai báo Buffer này trong hàm `app_main`?**
+
+*   **A:** Nếu khai báo trong hàm (mà không có `static`), nó sẽ nằm trên **Stack**. Stack của Task thường nhỏ (vài KB), khai báo mảng 12KB sẽ gây tràn Stack (Stack Overflow) và reset chip.
+
+
+
+**Q3: Cơ chế DMA (Direct Memory Access) giúp ích gì cho ghi thẻ nhớ SPI?**
+
+*   **A:** DMA cho phép chuyển dữ liệu trực tiếp từ RAM (`s_sd_buffer`) sang bộ đệm phát SPI mà không cần CPU thực hiện lệnh `MOV` cho từng byte. CPU rảnh tay để làm việc khác trong lúc dữ liệu đang bay sang thẻ nhớ.
+
+
+
+**Q4: Tại sao ghi thẻ nhớ lại có độ trễ (Latency) lớn tới 500ms?**
+
+*   **A:** Flash Controller bên trong thẻ nhớ cần thời gian để xóa block (Erase) và ghi trang (Program). Nếu Block bị đầy hoặc phân mảnh, nó cần dọn dẹp (Garbage Collection), gây ra độ trễ.
+
+
+
+**Q5: Hệ thống tập tin FAT32 tổ chức dữ liệu thế nào?**
+
+*   **A:** Sử dụng Bảng cấp phát tệp (File Allocation Table) để liên kết các Cluster dữ liệu rải rác. Khi ghi Append, nó phải tìm Cluster cuối cùng, cấp Cluster mới, cập nhật bảng FAT -> Tốn nhiều thao tác I/O.
+
+
+
+**Q6: Vùng nhớ Heap là gì? Trong bài có dùng không?**
+
+*   **A:** Là vùng nhớ cấp phát động (`malloc`). Trong bài có dùng gián tiếp thông qua thư viện `esp_vfs_fat` (cấp phát bộ nhớ cho struct `FILE`, buffer nội bộ của FATFS).
+
+
+
+**Q7: Nếu mất điện khi Buffer RAM chưa đầy 15 phút thì sao?**
+
+*   **A:** Dữ liệu trong RAM sẽ mất hoàn toàn. Đây là sự đánh đổi (Trade-off) giữa an toàn dữ liệu và tuổi thọ thẻ nhớ/hiệu năng hệ thống.
+
+
+
+**Q8: Tại sao dùng `snprintf` thay vì `sprintf`?**
+
+*   **A:** `snprintf` cho phép giới hạn số ký tự ghi vào buffer, ngăn chặn lỗi tràn bộ đệm (Buffer Overflow) - một lỗi bảo mật và ổn định nghiêm trọng trong C.
+
+
+
+**Q9: SPI Mode 0 nghĩa là gì?**
+
+*   **A:** CPOL=0 (Clock Idle Low), CPHA=0 (Sample on Rising Edge). Đây là chế độ chuẩn mà mọi thẻ SD đều hỗ trợ.
+
+
+
+**Q10: Tốc độ ghi trung bình của hệ thống là bao nhiêu?**
+
+*   **A:** ~12KB mỗi 15 phút = 800 bytes/phút = 13 bytes/giây. Rất thấp, nhưng đảm bảo an toàn.
+
+
+
+---
+
+
+
+### MODULE 5: FSM & THUẬT TOÁN (`fsm.c`)
+
+**Kiến thức liên quan:** Máy trạng thái, PID vs On/Off, Lọc số.
+
+
+
+**Q1: Máy trạng thái hữu hạn (FSM) khác gì với lập trình tuần tự thông thường?**
+
+*   **A:** FSM có "Trí nhớ" (Memory/State). Hành động hiện tại phụ thuộc vào cả đầu vào VÀ trạng thái hiện tại. (Ví dụ: Cùng là nước 50 độ, nhưng nếu đang ở IDLE thì không làm gì, nếu đang ở HUMIDIFY thì bật quạt).
+
+
+
+**Q2: Tại sao dùng Moving Average Filter (Lọc trung bình) mà không dùng Kalman?**
+
+*   **A:** SHT35 có nhiễu Gaussian trắng (nhiễu ngẫu nhiên quanh giá trị thật). Moving Average là bộ lọc tối ưu nhất, đơn giản nhất cho loại nhiễu này và tốn ít tài nguyên CPU hơn Kalman rất nhiều.
+
+
+
+**Q3: Hysteresis (Vùng trễ) ±2% giải quyết vấn đề gì về mặt điều khiển?**
+
+*   **A:** Giải quyết vấn đề dao động quanh điểm đặt (Oscillation/Chattering). Nó tạo ra một quán tính nhân tạo, ngăn hệ thống phản ứng thái quá với các thay đổi nhỏ.
+
+
+
+**Q4: Logic điều khiển quạt Case theo nhiệt độ nước (<60 và >=60) gọi là gì?**
+
+*   **A:** Đây là **Gain Scheduling** (Lập lịch tham số) đơn giản. Ta thay đổi luật điều khiển (Fan OFF -> Fan 30%) dựa trên biến phụ (Nhiệt độ nước) để đạt hiệu suất tối ưu ở từng vùng làm việc.
+
+
+
+**Q5: Watchdog Timer (WDT) bảo vệ hệ thống thế nào?**
+
+*   **A:** WDT là một bộ đếm lùi phần cứng. Code phải định kỳ "đá chó" (reset bộ đếm). Nếu code bị treo (vòng lặp vô tận), WDT đếm về 0 và reset chip. Trong ESP-IDF, `vTaskDelay` tự động làm việc này cho Task hiện tại.
+
+
+
+**Q6: Biến `static` trong hàm `fsm_run_cycle` được lưu ở đâu?**
+
+*   **A:** Lưu ở vùng nhớ Data/BSS (như biến toàn cục), nhưng phạm vi truy cập (Scope) chỉ giới hạn trong hàm đó. Nó giữ giá trị qua các lần gọi hàm.
+
+
+
+**Q7: Tại sao cần `emergency_reset_cmd` từ người dùng mà không tự reset khi hết lỗi?**
+
+*   **A:** Để đảm bảo an toàn (Latching Alarm). Khi có sự cố nghiêm trọng (quá nhiệt), con người cần kiểm tra nguyên nhân vật lý trước khi cho phép máy chạy lại, tránh tái diễn lỗi ngay lập tức gây hỏng nặng hơn.
+
+
+
+**Q8: Thuật toán điều khiển nhiệt độ này có phải là vòng kín (Closed-loop) không?**
+
+*   **A:** Có. Đầu ra (PWM) ảnh hưởng đến Đối tượng (Phòng), Cảm biến đo lại kết quả (Feedback) để FSM điều chỉnh Đầu ra tiếp.
+
+
+
+**Q9: Độ trễ của hệ thống (System Lag) chủ yếu do đâu?**
+
+*   **A:** Do quán tính nhiệt (Thermal Inertia) của khối nước và không khí trong phòng. Việc điều khiển điện tử (ms) là tức thời so với quá trình nhiệt (phút).
+
+
+
+**Q10: Nếu thay SHT35 bằng DHT11 thì cần sửa gì?**
+
+*   **A:** Sửa tầng Driver (`sht35.c`). FSM không cần sửa vì nó nhận dữ liệu chuẩn hóa (`SensorData_t`). Đây là ưu điểm của thiết kế phân tầng (Layered Architecture).
+
+
+
+---
+
+*Tài liệu này được tối ưu hóa để trả lời mọi câu hỏi vấn đáp về kiến trúc máy tính và lập trình nhúng liên quan đến đồ án.*
+
+
+Câu hỏi thêm:
+
+---
+
+## NHÓM 1: KIẾN TRÚC HỆ THỐNG & QUẢN LÝ BỘ NHỚ (STRICT)
+
+**1. Tại sao chọn Super Loop mà không phải RTOS (FreeRTOS) khi ESP32 là chip Dual-core mạnh mẽ?**
+
+* *Gợi ý:* Tiết kiệm tài nguyên, tính xác định (deterministic) cao, tránh Overhead của bộ lập lịch (Scheduler) và các vấn đề về Race Condition khi truy cập ngoại vi dùng chung.
+
+**2. Buffer 12KB trong RAM, nếu đang ghi nửa chừng (Bulk Flush) mà có ngắt nút nhấn, hệ thống xử lý thế nào?**
+
+* *Gợi ý:* Phân tích về tính tái lập (Reentrancy). Nếu không dùng DMA, CPU sẽ bị chiếm dụng để đẩy dữ liệu SPI, nút nhấn có thể bị trễ phản hồi.
+
+**3. Bạn dùng `static` buffer 12KB, tại sao không dùng `malloc`? Ưu nhược điểm của Static Allocation trong hệ thống nhúng cực kỳ ổn định là gì?**
+
+* *Gợi ý:* Tránh phân mảnh bộ nhớ (Heap Fragmentation). Static biết trước địa chỉ ngay khi compile.
+
+**4. Giải thích hiện tượng "Stack Overflow" có thể xảy ra ở đâu trong code của bạn dù đã dùng Buffer tĩnh?**
+
+* *Gợi ý:* Xoáy vào các hàm gọi lồng nhau (Nested functions) hoặc các biến cục bộ lớn bên trong các hàm xử lý chuỗi `snprintf`.
+
+**5. Nếu tôi yêu cầu tăng tần số Sampling lên 1kHz thay vì 10Hz, hệ thống của bạn sẽ "vỡ" ở module nào đầu tiên?**
+
+* *Gợi ý:* Module I2C và SD Card. I2C 20kHz không kịp đọc, và SD Card Latency sẽ làm treo vòng lặp chính.
+
+**6. Cơ chế "Bulk Flush" 15 phút một lần giúp bảo vệ tuổi thọ thẻ nhớ (Write Endurance) như thế nào? Tính toán số lần ghi tối đa nếu dùng thẻ SD 32GB.**
+
+**7. Tại sao lại dùng Moving Average Window 20? Con số 20 dựa trên cơ sở nào hay chỉ là "con số may mắn"?**
+
+* *Gợi ý:* Liên quan đến hằng số thời gian (Time Constant) của cảm biến SHT35 và quán tính của môi trường.
+
+**8. Trong file `VXL.c`, làm thế nào bạn đảm bảo mỗi vòng lặp chạy đúng 100ms (10Hz) mà không bị "trôi" thời gian (Drift)?**
+
+* *Gợi ý:* Sử dụng `esp_timer_get_time()` để tính toán thời gian ngủ bù thay vì `vTaskDelay` cố định.
+
+**9. Nếu `Bulk Flush` mất 500ms để ghi xong, trong lúc đó 5 mẫu sensor (mỗi 100ms) sẽ bị mất. Bạn xử lý việc mất dữ liệu này như thế nào?**
+
+* *Gợi ý:* Giải pháp là dùng **Double Buffering** (Ping-pong buffer).
+
+**10. Tại sao bạn lại chọn lưu log vào SD card bằng SPI thay vì dùng giao thức SDIO (4-bit)?**
+
+* *Gợi ý:* SPI dễ debug, tiết kiệm chân IO, nhưng đánh đổi bằng tốc độ.
+
+---
+
+## NHÓM 2: NGOẠI VI & ĐIỆN TỬ CÔNG SUẤT (DEEP DIVE)
+
+**11. Bạn nói I2C 20kHz ổn định hơn, nhưng tại sao không dùng 400kHz và bọc kim chống nhiễu? Cái nào tối ưu chi phí hơn?**
+
+**12. Phân tích tác động của điện dung ký sinh trên đường dây I2C dài. Tại sao điện trở Pull-up 10k có thể làm méo dạng sóng ở tần số cao?**
+
+**13. Tại sao không dùng bộ lọc tích cực (Active Filter) bằng Op-amp cho cảm biến mà lại dùng Moving Average?**
+
+**14. MOSFET của bạn là N-channel hay P-channel? Tại sao bạn lại chọn sơ đồ Low-side switch thay vì High-side?**
+
+**15. Giải thích tại sao việc dùng PWM với Peltier lại cần tần số thấp (~1Hz đến 10Hz) hoặc cực cao, chứ không nên dùng tần số trung bình (vài kHz)?**
+
+* *Gợi ý:* Peltier bị giảm hiệu suất do ứng suất nhiệt (Thermal cycling) nếu PWM quá nhanh mà không có bộ lọc LC.
+
+**16. Nếu Opto PC817 quá chậm làm nóng MOSFET, bạn hãy đề xuất 1 linh kiện thay thế hoặc 1 mạch lái (Gate Driver) chuyên dụng.**
+
+**17. Tại sao bạn không dùng bộ Hardware CRC nội bộ của ESP32 để tính CRC cho SHT35 mà lại viết phần mềm?**
+
+**18. LCD 4-bit mode: Nếu bit thấp (LSB) bị nhiễu làm sai lệch, màn hình sẽ hiển thị gì? Bạn có cơ chế nào để "Refresh" lại cấu hình LCD mà không cần Reset chip?**
+
+**19. Chân Reset của SHT35 bạn nối đi đâu? Nếu bus I2C bị treo (SDA bị kéo thấp vĩnh viễn), code của bạn xử lý thoát lỗi thế nào?**
+
+**20. Tại sao phải dùng `1ULL << pin`? Nếu tôi chỉ dùng `1 << pin` thì lỗi gì xảy ra với các GPIO từ 32 trở lên?**
+
+* *Gợi ý:* Lỗi tràn số (Overflow) vì mặc định là integer 32-bit.
+
+---
+
+## NHÓM 3: THUẬT TOÁN ĐIỀU KHIỂN & FSM (LOGIC)
+
+**21. Trong FSM, nếu trạng thái hiện tại là `HUMIDIFY` mà cảm biến bị rút ra (Disconnect), hệ thống sẽ nhảy về trạng thái nào? Có an toàn không?**
+
+**22. Tại sao bạn dùng Hysteresis ±2%? Nếu tôi giảm xuống 0.1% thì hiện tượng gì xảy ra với Relay/MOSFET?**
+
+**23. Giải thích khái niệm "Integrator Windup" nếu bạn chuyển từ On/Off sang PID. Bạn sẽ chống nó như thế nào?**
+
+**24. Thuật toán Moving Average có nhược điểm là gây trễ (Phase Lag). Độ trễ này có ảnh hưởng đến việc ổn định độ ẩm không? Tại sao?**
+
+**25. Làm thế nào để hệ thống tự nhận biết được bình nước đã cạn (không dùng thêm cảm biến mực nước)?**
+
+* *Gợi ý:* Theo dõi tốc độ tăng độ ẩm. Nếu PWM 100% mà độ ẩm không tăng trong 5 phút -> Cạn nước.
+
+**26. Bạn xử lý lỗi "Sensor Drift" (cảm biến sai lệch dần theo thời gian) như thế nào trong đặc tả kỹ thuật?**
+
+**27. Tại sao nút nhấn lại chọn Polling 10Hz? Nếu người dùng nhấn một xung cực ngắn 50ms, hệ thống có nhận được không?**
+
+**28. Trong code FSM, bạn dùng biến `state` kiểu `int` hay `enum`? Tại sao `enum` lại tốt hơn cho việc bảo trì code?**
+
+**29. Nếu cảm biến nhiệt độ nước báo 100 độ C (Lỗi sensor), nhưng độ ẩm vẫn chưa đạt, hệ thống có tiếp tục chạy Peltier không?**
+
+**30. Phân tích độ phức tạp thời gian  của bộ lọc Moving Average. Bạn có cách nào tối ưu nó để không phải cộng lại 20 phần tử mỗi lần không?**
+
+* *Gợi ý:* Dùng kỹ thuật Rolling Sum (Cộng mới, trừ cũ).
+
+---
+
+## NHÓM 4: CÂU HỎI "NẾU... THÌ..." (ALTERNATIVE SOLUTIONS)
+
+**31. Nếu không dùng thẻ SD, bạn có thể lưu Log ở đâu trên ESP32 để dữ liệu không mất khi mất điện?**
+
+* *Gợi ý:* Flash (nội bộ) dùng SPIFFS hoặc LittleFS.
+
+**32. Nếu không dùng SHT35 (I2C), hãy thiết kế một mạch đo độ ẩm dùng cảm biến điện dung analog.**
+
+**33. Nếu phải truyền dữ liệu log về server thay vì thẻ SD, bạn sẽ chọn giao thức nào (MQTT, HTTP, hay WebSocket)? Tại sao?**
+
+**34. Nếu hệ thống cần chạy bằng Pin trong 24h, bạn sẽ tối ưu hóa code như thế nào (Deep Sleep, Light Sleep)?**
+
+**35. Nếu môi trường có nhiễu cực lớn làm CPU nhảy vào vùng nhớ lạ (PC Corrupted), linh kiện phần cứng nào sẽ cứu hệ thống?**
+
+* *Gợi ý:* Watchdog Timer (WDT).
+
+**36. Nếu cần điều khiển độ ẩm cho 10 phòng cùng lúc, kiến trúc Super Loop của bạn có còn đứng vững không?**
+
+**37. Tại sao không dùng cảm biến hồng ngoại để đo mực nước mà lại dùng thuật toán suy diễn?**
+
+**38. Nếu giao tiếp SPI với thẻ SD bị lỗi vật lý (lỏng dây), làm sao để hệ thống vẫn tiếp tục điều khiển mà không bị "block" ở hàm ghi file?**
+
+**39. Bạn hãy đề xuất một cách để cập nhật Firmware cho hệ thống này từ xa (OTA) mà không cần tháo hộp.**
+
+**40. Nếu dùng Peltier để làm lạnh, hơi nước ngưng tụ trên bề mặt Peltier gây ngắn mạch thì thiết kế cơ khí của bạn xử lý thế nào?**
+
+---
+
+## NHÓM 5: THANH GHI & KIẾN TRÚC VI XỬ LÝ (LOW-LEVEL)
+
+**41. Bản chất của việc "ghi vào thanh ghi" là gì? CPU thực hiện lệnh gì ở mức Assembly?**
+
+* *Gợi ý:* Lệnh `STR` (Store) vào một địa chỉ bộ nhớ được ánh xạ (Memory-mapped I/O).
+
+**42. ESP32 là kiến trúc Harvard hay Von Neumann? Nó ảnh hưởng gì đến việc truy cập Bus dữ liệu và Bus lệnh đồng thời?**
+
+**43. Thanh ghi `GPIO_OUT_W1TS` và `GPIO_OUT_W1TC` dùng để làm gì? Tại sao dùng chúng lại tốt hơn việc đọc-sửa-ghi (Read-Modify-Write) trên thanh ghi `GPIO_OUT_REG`?**
+
+* *Gợi ý:* Tính nguyên tử (Atomicity), tránh tranh chấp giữa Main loop và Interrupt.
+
+**44. Interrupt Vector Table (Bảng vector ngắt) nằm ở đâu trong bộ nhớ?**
+
+**45. Giải thích quá trình Context Switching nếu bạn chuyển sang dùng RTOS.**
+
+**46. Tại sao PWM của ESP32 (LEDC) có thể chạy tiếp ngay cả khi CPU bị đứng (HardFault)?**
+
+* *Gợi ý:* Vì LEDC là một module phần cứng độc lập, nó chỉ lấy xung clock từ APB bus và chạy theo cấu hình thanh ghi đã nạp.
+
+**47. "Jitter" trong PWM là gì? Điều gì gây ra Jitter khi bạn làm PWM bằng phần mềm?**
+
+**48. Làm thế nào để cấu hình 1 chân GPIO vừa là Input vừa là Output đồng thời?**
+
+**49. Bootloader của ESP32 nằm ở đâu? Làm sao nó biết cần nhảy vào địa chỉ nào để chạy code ứng dụng của bạn?**
+
+**50. Nếu tôi muốn khóa code của mình để người khác không đọc trộm từ Flash, bạn sẽ dùng tính năng nào của ESP32?**
+
+* *Gợi ý:* Flash Encryption và Secure Boot.
+
+---
+
+### Lời khuyên cho bạn:
+
+Thầy sẽ không mong đợi bạn trả lời đúng 100%, nhưng thầy mong đợi bạn **thành thật** và **hiểu bản chất**. Nếu không biết, hãy nói: *"Em chưa nghiên cứu sâu phần này, nhưng theo nguyên lý X thì em đoán là Y..."*.
+
+
+
+### NHÓM 1: CẤU TRÚC CPU, TẬP LỆNH & QUẢN LÝ BỘ NHỚ
+
+1. **Hỏi về `1ULL << pin`:** Tại sao phải là `ULL` (64-bit)? Nếu CPU ESP32 là 32-bit, làm sao nó xử lý được một toán hạng 64-bit? Tập lệnh nào được dùng để dịch bit trên một cặp thanh ghi 32-bit?
+2. **Hỏi về `static char s_sd_buffer[12288]`:** Biến này được đặt vào phân vùng RAM nào (Data, BSS hay Stack)? Tại sao truy cập biến này lại nhanh hơn truy cập biến trong `malloc`?
+3. **Hỏi về Lệnh nhảy:** Khi gọi hàm `fsm_run_cycle`, CPU thực hiện lệnh nhảy gì (ví dụ: `CALL` hay `JMP`)? Nó lưu địa chỉ quay về (Return Address) ở đâu?
+4. **Hỏi về Pipeline:** Việc tính toán trung bình cộng (Moving Average) 20 phần tử liên tục có thể làm "gãy" đường ống lệnh (Pipeline Stall) không? Tại sao?
+5. **Hỏi về Con trỏ:** `SensorData_t *sensors` là một con trỏ. Bản chất giá trị lưu trong con trỏ này ở mức thanh ghi là gì? CPU dùng chế độ đánh địa chỉ (Addressing Mode) nào để truy cập `sensors->t_air`?
+6. **Hỏi về `extern`:** Ở mức liên kết (Linker), từ khóa `extern` làm gì với bảng ký hiệu (Symbol Table)? Làm sao CPU biết địa chỉ thực sự của `g_sensors` khi file `fsm.c` được biên dịch riêng lẻ?
+7. **Hỏi về Alignment (Căn chỉnh dữ liệu):** Một biến `float` chiếm 4 byte. Nếu địa chỉ của nó không chia hết cho 4, CPU ESP32 (Kiến trúc Xtensa) sẽ xử lý thế nào? Tốn mấy chu kỳ máy để đọc?
+8. **Hỏi về `volatile`:** Tại sao các thanh ghi GPIO thường được định nghĩa với từ khóa `volatile`? Nếu thiếu nó, trình biên dịch (Compiler) sẽ "tối ưu" code của em như thế nào dẫn đến sai lệch?
+9. **Hỏi về Stack:** Khi `app_main` gọi `lcd_init`, sơ đồ Stack thay đổi thế nào? "Stack Frame" chứa những gì?
+10. **Hỏi về Little-Endian/Big-Endian:** ESP32 sử dụng thứ tự byte nào? Khi đọc 2 byte từ SHT35 (`d[0] << 8 | d[1]`), em đang thực hiện chuyển đổi gì về mặt kiến trúc máy tính?
+
+---
+
+### NHÓM 2: GIAO TIẾP NGOẠI VI & THANH GHI (GPIO, PWM, I2C)
+
+11. **Hỏi về `gpio_get_level`:** Hàm này thực chất đọc từ thanh ghi đầu vào nào? (Ví dụ: `GPIO_IN_REG`). Nếu chân đó đang cấu hình là Output, ta có đọc được giá trị của nó từ thanh ghi này không?
+12. **Hỏi về Bit-masking:** Để xóa một bit trong thanh ghi mà không ảnh hưởng đến các bit khác, CPU thực hiện chuỗi lệnh logic nào (AND/OR/NOT)?
+13. **Hỏi về I2C Master:** Khi em cấu hình 20kHz, thanh ghi chia tần (Prescaler) của bộ I2C sẽ nhận giá trị như thế nào so với xung Clock hệ thống (80MHz)?
+14. **Hỏi về Open-Drain:** Vẽ sơ đồ mạch điện mức Transistor của một chân GPIO ở chế độ Open-Drain. Tại sao không có Transistor kéo lên nguồn (PMOS)?
+15. **Hỏi về LEDC Timer:** Thanh ghi `HPOINT` trong cấu hình LEDC dùng để làm gì? Nó ảnh hưởng thế nào đến pha của xung PWM?
+16. **Hỏi về Duty Cycle:** Tại sao giá trị nạp vào thanh ghi Duty lại là 10-bit (0-1023)? Nếu nạp giá trị 1024 vào thanh ghi 10-bit, hiện tượng gì xảy ra (Overflow)?
+17. **Hỏi về I2C ACK:** Ở mức vật lý, bit ACK được tạo ra như thế nào? Thiết bị nào (Master hay Slave) điều khiển đường SDA tại nhịp xung thứ 9?
+18. **Hỏi về PCF8574:** Chip này không có thanh ghi hướng dữ liệu (Direction Register). Vậy làm sao nó biết lúc nào chân P0 là Input, lúc nào là Output?
+19. **Hỏi về Clock Stretching:** Nếu SHT35 kéo thấp đường SCL (Stretching), bộ điều khiển I2C phần cứng của ESP32 sẽ làm gì với bộ đếm thời gian (Counter) của nó?
+20. **Hỏi về PWM Fading:** Bản chất của "Hardware Fade" là gì? Có một bộ đếm (Counter) phụ nào tự động cộng/trừ vào thanh ghi Duty không?
+
+---
+
+### NHÓM 3: GIAO THỨC 1-WIRE & TIMING KHẮT KHE
+
+21. **Hỏi về `ets_delay_us`:** Hàm này là một vòng lặp vô tận tiêu tốn chu kỳ máy hay nó sử dụng Timer phần cứng?
+22. **Hỏi về Critical Section:** Tại sao việc đọc DS18B20 lại sợ Ngắt (Interrupt)? Một ngắt 100µs có thể làm hỏng bit "0" hay bit "1" của 1-Wire?
+23. **Hỏi về Trạng thái "Thả nổi" (High-Z):** Khi ESP32 nhả đường 1-Wire để đọc bit từ Slave, thanh ghi cấu hình GPIO sẽ chuyển từ `GPIO_MODE_OUTPUT` sang gì?
+24. **Hỏi về Reset Pulse:** Tại sao phải kéo Low tận 480µs? Nếu chỉ kéo 100µs, cảm biến có phản hồi không? Tại sao?
+25. **Hỏi về CRC-8:** Tại sao lại dùng đa thức `0x31`? Phép toán XOR trong thuật toán CRC tương đương với phép toán số học nào trong trường nhị phân?
+
+---
+
+### NHÓM 4: BỘ NHỚ FLASH, SD CARD & SPI
+
+26. **Hỏi về SPI Mode:** SPI Mode 0 (CPOL=0, CPHA=0) quy định thời điểm lấy mẫu dữ liệu là cạnh lên hay cạnh xuống của xung Clock?
+27. **Hỏi về DMA:** Khi dùng DMA để ghi 12KB RAM xuống SD, CPU có phải thực hiện lệnh `LDR/STR` từng byte không? Vậy ai là người điều khiển bus địa chỉ (Address Bus) lúc đó?
+28. **Hỏi về FAT32:** Khi em gọi `fopen` với chế độ "a" (append), vi xử lý phải tìm thông tin gì trong bảng FAT để biết vị trí cuối cùng của file?
+29. **Hỏi về Write Latency:** Tại sao ghi 12KB một lần lại tiết kiệm năng lượng hơn ghi 1 byte x 12000 lần?
+30. **Hỏi về SPI Chip Select (CS):** Nếu chân CS luôn bị kéo thấp (luôn chọn), liệu ta có thể dùng chung bus SPI này với một thiết bị khác không? Tại sao?
+
+---
+
+### NHÓM 5: TƯ DUY HỆ THỐNG & ĐÁNH ĐỔI (TRADE-OFFS)
+
+31. **Hỏi về Watchdog Timer (WDT):** Nếu vòng lặp `while(1)` bị kẹt ở hàm `i2c_master_read`, WDT sẽ làm gì? Thanh ghi nào lưu trữ nguyên nhân Reset (Reset Reason) sau khi chip khởi động lại?
+32. **Hỏi về Nguồn điện:** Khi Peltier khởi động (Full Duty), điện áp nguồn 12V sụt xuống. Hiện tượng này ảnh hưởng thế nào đến độ chính xác của ADC bên trong cảm biến (nếu dùng cảm biến Analog)?
+33. **Hỏi về EMI:** Xung PWM 1kHz có thể tạo ra các sóng hài (harmonics). Các sóng hài này có thể gây nhiễu cho giao tiếp I2C không? Làm sao để giảm thiểu về mặt code?
+34. **Hỏi về ISR (Interrupt Service Routine):** Nếu em chuyển nút nhấn sang dùng Ngắt, tại sao không được gọi hàm `printf` hoặc `vTaskDelay` bên trong ISR?
+35. **Hỏi về Floating Point Unit (FPU):** ESP32 có FPU không? Các tính toán `float` trong FSM của em được thực hiện bằng phần cứng hay thư viện phần mềm mô phỏng?
+36. **Hỏi về Boot Sequence:** Sau khi Reset, vi xử lý sẽ lấy địa chỉ lệnh đầu tiên ở đâu? (Vector Reset).
+37. **Hỏi về IRAM vs DRAM:** Tại sao các hàm xử lý ngắt nhạy cảm thường được đặt trong `IRAM_ATTR`?
+38. **Hỏi về Power Management:** Nếu tôi muốn giảm xung nhịp CPU từ 240MHz xuống 10MHz để tiết kiệm điện, module nào trong dự án của em sẽ bị hỏng (sai lệch) đầu tiên? (Gợi ý: I2C, UART, PWM).
+39. **Hỏi về Memory Map:** Địa chỉ `0x40000000` trên ESP32 thường là vùng nhớ gì? Làm sao CPU phân biệt được địa chỉ đó là RAM hay là Ngoại vi (Peripheral)?
+40. **Hỏi về Binary Size:** Việc sử dụng thư viện `sprintf` làm kích thước file `.bin` tăng thêm bao nhiêu? Tại sao trong hệ thống nhúng cực nhỏ người ta lại dùng `itoa` thay thế?
+
+---
+
+### NHÓM 6: CÂU HỎI THÁCH THỨC (DÀNH CHO ĐIỂM 10)
+
+41. **Nếu đường SDA bị chập xuống GND:** Code I2C của em sẽ bị treo vĩnh viễn hay trả về lỗi? Làm sao để thiết kế một hàm I2C "không bao giờ treo" (Robust I2C)?
+42. **Phân tích hàm `snprintf`:** Tại sao nó lại an toàn hơn `sprintf` về mặt quản lý bộ nhớ Stack?
+43. **Tối ưu hóa Moving Average:** Thay vì cộng 20 số mỗi lần, em hãy mô tả thuật toán chỉ dùng 1 phép cộng và 1 phép trừ ở mức thanh ghi.
+44. **Bản chất của `vTaskDelay`:** Nó có thực sự dừng CPU không? Nếu không, nó đẩy CPU vào trạng thái gì (IDLE Task)?
+45. **So sánh Polling và Interrupt:** Trong điều kiện nhiễu EMI từ Peltier cực lớn, tại sao Polling 10Hz lại "khôn ngoan" hơn dùng ngắt cạnh?
+46. **Hệ thống 16-bit hay 32-bit:** Nếu em port code này sang vi điều khiển 8-bit (như 8051), em phải sửa những kiểu dữ liệu nào?
+47. **Cách tính toán dung lượng SD:** Với tốc độ log hiện tại, bao lâu thì thẻ 1GB sẽ đầy? Vi xử lý sẽ làm gì khi nhận lỗi `ENOSPC` (hết bộ nhớ)?
+48. **Phân tích Soft-start:** Vẽ đồ thị Duty Cycle theo thời gian khi gọi `pwm_set_peltier(1023, 1000)`.
+49. **Bảo mật:** Làm thế nào để ngăn chặn việc một người rút thẻ SD ra và sửa file CSV nhằm "lừa" hệ thống?
+50. **Kiến trúc:** Tại sao em không dùng mô hình "Event-Driven" thay vì "Super Loop"?
+
+
+
+
+
+
+### 1. Phân tích Sâu về Cơ chế "Reset mềm" LCD
+
+* **Câu hỏi:** Trong module `lcd.c`, em gửi lệnh `0x30` ba lần rồi mới gửi `0x20` để vào chế độ 4-bit.
+* **Hỏi xoáy:** Tại sao không thể gửi ngay lệnh `0x28` (4-bit, 2 dòng)? Nếu lúc đó LCD đang ở trạng thái lửng lơ (đã nhận 4 bit của một lệnh trước đó nhưng bị reset chip), việc gửi 3 lần `0x30` giúp đồng bộ lại "Instruction Register" của LCD như thế nào?
+* **Bản chất:** Đây là kỹ thuật "Interface Reset" để đưa bộ đếm bit nội bộ của LCD về 0.
+
+
+
+### 2. Sự đánh đổi giữa `memcpy` và `fprintf` trực tiếp
+
+* **Câu hỏi:** Tại sao em lại chọn `memcpy` dữ liệu vào `s_sd_buffer` rồi mới `sd_card_append_file` mỗi 15 phút, thay vì dùng `fprintf` thẳng vào file mỗi 5 giây?
+* **Hỏi xoáy:** Thao tác `fprintf` tốn bao nhiêu tài nguyên tính toán (CPU cycles) để format chuỗi so với việc chỉ copy dữ liệu thô? Việc mở/đóng file (`fopen`/`fclose`) liên tục sẽ làm hại gì đến bảng FAT (File Allocation Table) trên thẻ nhớ?
+
+
+
+### 3. Logic "Om nhiệt" (Thermal Inertia) trong FSM
+
+* **Câu hỏi:** Code FSM có đoạn tắt quạt Case khi nước < 60°C để làm nóng nhanh.
+* **Hỏi xoáy:** Hiện tượng này trong điều khiển học gọi là gì? Tại sao không dùng quạt chạy chậm (PWM thấp) mà lại tắt hẳn? Việc tắt hẳn quạt có nguy cơ gây "nhiệt cục bộ" làm hỏng mặt nóng của Peltier trước khi nước kịp nóng không?
+* **Bản chất:** Quản lý quán tính nhiệt và phân phối dòng nhiệt qua vật liệu bán dẫn.
+
+
+
+### 4. Thanh ghi MUX và Ma trận GPIO
+
+* **Câu hỏi:** ESP32 có tính năng **GPIO Matrix**.
+* **Hỏi xoáy:** Khi em cấu hình `PIN_PELTIER` cho LEDC PWM, thanh ghi nào quyết định việc kết nối đầu ra của bộ Timer PWM tới chân vật lý số 13? Nếu tôi muốn xuất cùng một tín hiệu PWM đó ra cả chân 13 và chân 14 đồng thời bằng phần cứng, em có làm được không?
+* **Bản chất:** Hiểu về IO MUX và Signal Routing bên trong chip.
+
+
+
+### 5. Xử lý Tràn bộ đệm (Buffer Overflow) trong `snprintf`
+
+* **Câu hỏi:** Em dùng `snprintf(line, sizeof(line), ...)`.
+* **Hỏi xoáy:** Nếu chuỗi định dạng dài hơn kích thước của `line`, hàm `snprintf` sẽ trả về giá trị gì? Dữ liệu trong RAM Buffer của em lúc đó sẽ bị thiếu (truncated) hay sẽ đè vào vùng nhớ khác? Em đã xử lý điều kiện "Buffer Full" trong `s_sd_buffer` như thế nào để không bị treo máy?
+
+
+
+---
+
+### TỔNG KẾT KIẾN THỨC CẦN NẮM ĐỂ ĐẠT 10/10:
+
+Nếu em trả lời được những câu hỏi trên, thầy có thể khẳng định em đã nắm vững:
+
+1. **Kiến trúc máy tính:** Cách CPU điều khiển Bus để đọc/ghi bộ nhớ và ngoại vi.
+2. **Lập trình hệ thống:** Quản lý tài nguyên hạn hẹp (RAM, Flash, Thời gian thực).
+3. **Điện tử số:** Các giao thức nối tiếp (I2C, SPI, 1-Wire) và điều chế xung (PWM).
+4. **Tư duy kỹ sư:** Biết tại sao mình chọn giải pháp này mà không chọn giải pháp kia (Trade-off).
+
+**Lời khuyên cuối của thầy:**
+Khi đi thi, nếu thầy hỏi một câu em không biết chắc, hãy bắt đầu bằng: **"Dựa trên sơ đồ khối của vi xử lý..."** hoặc **"Xét về mặt thanh ghi cấu hình..."**. Cách nói này cho thấy em có tư duy gốc, giảng viên sẽ đánh giá rất cao dù câu trả lời cuối cùng có thể chưa hoàn thiện.
+
+
+
+
+
+ PHÂN TÍCH CHI TIẾT MODULE: BUTTON (INPUT HANDLING)
+
+  Mục đích: Module này chịu trách nhiệm chuyển đổi tín hiệu điện vật lý (có nhiễu rung - bouncing) từ nút nhấn thành các
+  sự kiện Logic sạch sẽ (Pressed, Released, Held) để chương trình chính sử dụng.
+
+  ---
+
+  1. FILE HEADER: main/button.h
+  Đây là "bản hợp đồng" (Interface) giữa module nút nhấn và phần còn lại của hệ thống.
+
+   1 #ifndef BUTTON_H
+   2 #define BUTTON_H
+   * Header Guards: Kỹ thuật chuẩn trong C để tránh lỗi biên dịch "redefinition" nếu file này được include nhiều lần ở
+     nhiều nơi.
+
+   1 #include <stdbool.h>
+   2 #include "driver/gpio.h"
+   * stdbool.h: Để dùng kiểu bool, true, false (C chuẩn chưa có, phải include).
+   * driver/gpio.h: Thư viện ESP-IDF quan trọng nhất ở đây. Nó chứa định nghĩa các thanh ghi, các hằng số (như
+     GPIO_NUM_32) và hàm để điều khiển chân IO của ESP32.
+
+   1 void button_init(gpio_num_t pin);
+   * gpio_num_t: Đây là một enum (kiểu liệt kê) được định nghĩa trong ESP-IDF. Thay vì truyền int pin = 32, ta truyền
+     GPIO_NUM_32. Nó giúp code an toàn hơn (type-safe).
+
+   1 bool button_is_pressed(gpio_num_t pin);
+   2 bool button_is_down(gpio_num_t pin);
+   * Hai hàm này có sự khác biệt cốt lõi về Tư duy lập trình nhúng:
+       * button_is_pressed: Phát hiện Sự kiện (Event) - Cụ thể là sườn xuống (Falling Edge). Nó chỉ trả về true đúng 1
+         lần khi bạn vừa nhấn nút. Nó có xử lý chống rung (debounce).
+       * button_is_down: Kiểm tra Trạng thái (State) - Nút có đang bị giữ không? Nó trả về true liên tục miễn là tay bạn
+         còn giữ nút.
+
+  ---
+
+  2. FILE SOURCE: main/button.c
+  Đây là nơi thực thi logic (Implementation).
+
+  2.1. Khai báo & Cấu trúc dữ liệu
+
+   1 #include "button.h"
+   2 #include "esp_timer.h" // <-- Quan trọng
+    esp_timer.h: Cung cấp hàm lấy thời gian hệ thống (esp_timer_get_time()) với độ chính xác Micro giây ($\mu s$). Đây                            │
+      là cơ sở để ta làm bộ đếm thời gian chống rung mà không cần dùng delay() gây treo hệ thống.        
+   3 #include "esp_log.h"
+
+   1 #define BTN_DEBOUNCE_MS 50
+   * Magic Number: 50ms. Khi tiếp điểm cơ khí va vào nhau, nó sẽ nảy (bounce) tạo ra chuỗi tín hiệu 0-1-0-1. Ta chọn 50ms là khoảng thời gian "mù" để lọc nhiễu.
+
+   1 typedef struct {
+   2     gpio_num_t pin;
+   3     bool is_held;            // Current stable state (True = Held Down)
+   4     int64_t last_event_time; // Timestamp of last level change
+   5 } btn_state_t;
+   * State Machine: Vì dùng polling, ta cần nhớ trạng thái "is_held" của lần quét trước để phát hiện sự thay đổi (Edge Detection).
+
+   1 static btn_state_t buttons[] = {
+   2     { .pin = PIN_BTN_MODE, .is_held = false, .last_event_time = 0 },
+   3     { .pin = PIN_BTN_UP,   .is_held = false, .last_event_time = 0 },
+   4     { .pin = PIN_BTN_DOWN, .is_held = false, .last_event_time = 0 }
+   5 };
+   * Mảng quản lý trạng thái riêng biệt cho 3 nút. Sử dụng biến `static` để giới hạn phạm vi trong file này, đảm bảo tính đóng gói (Encapsulation).
+
+  2.2. Hàm khởi tạo: button_init
+
+    1 void button_init(gpio_num_t pin) {
+    2     gpio_config_t in_conf = {
+    3         .pin_bit_mask = (1ULL << pin),
+    4         .mode = GPIO_MODE_INPUT,
+    5         .pull_up_en = GPIO_PULLUP_ENABLE,
+    6         .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    7         .intr_type = GPIO_INTR_DISABLE
+    8     };
+    9     gpio_config(&in_conf);
+   10 }
+       * gpio_config_t: Struct cấu hình của ESP-IDF.                                                                                                   │
+│    * .pin_bit_mask = (1ULL << pin):                                                                                                                │
+│        * ESP32 quản lý GPIO bằng thanh ghi 64-bit (thực ra là 2 thanh ghi 32-bit).                                                                 │
+│        * Phép dịch bit (1ULL << pin) tạo ra một chuỗi bit chỉ có vị trí thứ pin là 1.                                                              │
+│        * 1ULL: Số 1 kiểu Unsigned Long Long (64-bit). Nếu chỉ viết 1 << 35, trình biên dịch C chuẩn sẽ hiểu là int                                 │
+│          (32-bit) và gây lỗi tràn số (overflow) với các GPIO > 31.                                                                                 │
+│    * .pull_up_en = GPIO_PULLUP_ENABLE: Kích hoạt điện trở nội nối lên nguồn 3.3V.                                                                  │
+│         * Tại sao? Nút nhấn nối xuống đất (GND). Khi hở mạch, chân GPIO cần được kéo lên mức 1 (3.3V) để không bị thả nổi                           │
+│           (floating - thu nhiễu như anten). Khi nhấn, nó nối thẳng xuống GND (mức 0).                                                               │
+│     * .intr_type = GPIO_INTR_DISABLE: Ta không dùng ngắt (Interrupt) phần cứng, mà dùng phần mềm để quét (Polling). Điều                            │
+│      này an toàn hơn trong môi trường nhiễu cao vì ngắt quá nhạy có thể treo CPU nếu nhiễu liên tục. 
+  2.3. Hàm xử lý logic chính: button_is_pressed
+
+   1 bool button_is_pressed(gpio_num_t pin) {
+   2     btn_state_t* btn = get_btn_state(pin);
+   3     if (!btn) return false;
+   4
+   5     int level = gpio_get_level(pin); // 0 = Pressed, 1 = Released
+   6     int64_t now = esp_timer_get_time() / 1000;
+   7     bool should_update_time = false;
+   8
+   9     if (level == 0) {
+  10         // Button is physically DOWN
+  11         if (!btn->is_held) {
+  12             // Trước đó là UP -> Có sự chuyển đổi (Falling Edge)
+  13             if (now - btn->last_event_time >= BTN_DEBOUNCE_MS) {
+  14                 // CONFIRMED PRESS
+  15                 btn->is_held = true;
+  16                 should_update_time = true;
+  17                 return true; // Return TRUE once per press
+  18             }
+  19         }
+  20     } else {
+  21         // Button is physically UP
+  22         if (btn->is_held) {
+  23             // Trước đó là DOWN -> Có sự chuyển đổi (Rising Edge)
+  24             if (now - btn->last_event_time >= BTN_DEBOUNCE_MS) {
+  25                 // CONFIRMED RELEASE
+  26                 btn->is_held = false;
+  27                 should_update_time = true;
+  28             }
+  29         }
+  30     }
+  31
+  32     if (should_update_time) {
+  33         btn->last_event_time = now;
+  34     }
+  35
+  36     return false;
+  37 }
+   * Logic Đơn giản hóa: Code mới tập trung vào phát hiện sườn (Edge Detection) kết hợp Time-check.
+   * `return true` ngay khi phát hiện sườn xuống hợp lệ -> Phản hồi tức thì cho người dùng nhưng vẫn đảm bảo chống rung.
+
+  2.4. Hàm kiểm tra mức thô: button_is_down
+
+   1 bool button_is_down(gpio_num_t pin) {
+   2     return (gpio_get_level(pin) == 0);
+   3 }
+   * Đơn giản trả về mức logic vật lý. Dùng cho tính năng nhấn giữ (Long Press) trong `main/VXL.c`.
+
+  ---
+
+  TỔNG KẾT MODULE BUTTON (Dành cho trả lời vấn đáp)
+
+   1. Cơ chế: Polling (Hỏi vòng) kết hợp State Machine.
+   2. Chống rung (Debounce): 50ms stable check.
+   3. Cấu hình: Active Low, Internal Pull-up.
+   4. Cải tiến mới: Sử dụng struct `btn_state_t` đóng gói gọn gàng, hỗ trợ mở rộng nhiều nút dễ dàng.
+
+
+ PHÂN TÍCH CHI TIẾT MODULE: CONFIGURATION (SYSTEM DEFINITIONS)
+
+  Mục đích: Tập trung hóa toàn bộ tham số hệ thống. Giúp việc bảo trì, tinh chỉnh (tuning) và porting sang phần cứng
+  khác trở nên dễ dàng.
+
+  ---
+
+  1. PHẦN CỨNG (HARDWARE CONFIGURATION)
+
+  1.1. Cấu hình I2C Bus
+
+   1 #define I2C_MASTER_SDA_IO           21
+   2 #define I2C_MASTER_SCL_IO           22
+   3 #define I2C_MASTER_NUM              I2C_NUM_0
+   4 #define I2C_MASTER_FREQ_HZ          20000  // Reduced to 20kHz for extreme noise immunity
+   * SDA/SCL: Chân dữ liệu (Serial Data) và chân xung nhịp (Serial Clock) mặc định của ESP32.
+   * `I2C_NUM_0`: ESP32 có 2 bộ điều khiển I2C phần cứng (0 và 1). Ta chọn bộ 0.
+   * `20000` (20kHz): Điểm quan trọng cần giải thích khi bảo vệ.
+       * Chuẩn I2C thông thường là 100kHz (Standard) hoặc 400kHz (Fast).
+       * Tại sao chọn 20kHz? Hệ thống VXL có các thiết bị công suất lớn (Peltier, Bơm) gây nhiễu điện từ (EMI) mạnh. Tần
+         số cao dễ bị nhiễu làm biến dạng xung (do điện dung ký sinh trên dây dẫn). Hạ tần số xuống 20kHz làm xung vuông
+         "đẹp" hơn, truyền tin chậm nhưng cực kỳ chắc chắn (Robustness).
+
+  1.2. Địa chỉ Thiết bị (I2C Addresses)
+
+   1 #define LCD_ADDR                    0x27
+   2 #define SHT35_ADDR_DEFAULT          0x44
+   * Các địa chỉ này là cố định do nhà sản xuất quy định (Hardcoded).
+   * 0x27: Địa chỉ phổ biến của chip chuyển đổi I2C-to-Parallel PCF8574 dùng cho LCD 1602.
+   * 0x44: Địa chỉ mặc định của cảm biến Sensirion SHT3x.
+
+  1.3. Cấu hình Chân IO (Pin Mapping)
+
+   1 // --- DS18B20 (1-Wire) ---
+   2 #define PIN_DS18B20                 GPIO_NUM_4
+   3
+   4 // --- PWM / MOSFETS ---
+   5 #define PIN_PELTIER                 GPIO_NUM_13
+   6 #define PIN_PUMP                    GPIO_NUM_17
+   7 #define PIN_FAN_BLOWER              GPIO_NUM_14
+   8 ...
+   * Sử dụng GPIO_NUM_x thay vì số nguyên trần trụi để tận dụng khả năng kiểm tra kiểu dữ liệu (Type Checking) của
+     ESP-IDF.
+   * Các chân này được chọn lựa để tránh các chân đặc biệt (Strapping Pins) của ESP32 (như GPIO 0, 2, 12, 15) có thể ảnh
+     hưởng đến quá trình Boot (khởi động) nếu bị kéo sai mức logic.
+
+   1 #define BUTTON_USE_INTERNAL_PULLUP 1
+   * Cờ tiền xử lý (Preprocessor Flag): Quyết định xem có kích hoạt trở kéo lên bên trong ESP32 hay không. Giá trị 1
+     nghĩa là BẬT -> Tiết kiệm linh kiện ngoài, mạch in gọn hơn.
+
+  1.4. Cấu hình PWM & LEDC (Mới cập nhật)
+
+   1 #define PWM_FREQ            1000        // 1kHz Frequency
+   2 #define PWM_RES             LEDC_TIMER_10_BIT // 10-bit Resolution (0-1023)
+   3 #define PWM_MAX_DUTY        1023
+   4
+   5 #define LEDC_MODE           LEDC_LOW_SPEED_MODE
+   6 #define PWM_CH_BLOWER       LEDC_CHANNEL_0
+   * Tập trung toàn bộ cấu hình PWM tại đây giúp dễ dàng tinh chỉnh:
+       * PWM_FREQ 1000Hz: Tần số an toàn cho Opto PC817 (tránh hiện tượng sườn xung bị méo do Opto chậm).
+       * PWM_RES 10-bit: Độ phân giải 1024 mức, đủ mịn cho điều khiển nhiệt độ chính xác.
+   * Việc định nghĩa kênh (Channel 0-3) tại đây giúp tránh xung đột tài nguyên nếu sau này thêm thiết bị PWM mới.
+
+  1.5. Cấu hình SD Card (SPI)
+
+   1 #define PIN_SD_CS                   5
+   2 #define PIN_SD_MOSI                 23
+   3 #define PIN_SD_MISO                 19
+   4 #define PIN_SD_CLK                  18
+   * Đây là các chân SPI mặc định (Default VSPI) của ESP32. Sử dụng chân mặc định giúp tận dụng ma trận GPIO (GPIO
+     Matrix) tối ưu hóa tốc độ cao nhất (lên đến 80MHz nếu cần).
+
+  ---
+
+  2. HỆ THỐNG & LOGIC (SYSTEM & CONTROL CONSTANTS)
+
+  Đây là phần chứa các "Con số ma thuật" (Magic Numbers) điều khiển hành vi của hệ thống.
+
+  2.1. Chu kỳ hoạt động (System Timings)
+
+   1 #define SHT_SAMPLE_INTERVAL_MS      250   // 4Hz Sampling
+   2 #define MA_WINDOW_SIZE              20    // 20 samples * 250ms = 5s moving average
+   3 #define LOG_INTERVAL_MS             5000  // 5s RAM Log
+   4 #define FLUSH_INTERVAL_MS           900000 // 15min Disk Write
+   * Các hằng số này kiểm soát "nhịp tim" (Heartbeat) của hệ thống đa nhiệm giả lập.
+   * Việc tách biệt SENSOR_READ (nhanh - 250ms) và FLUSH_INTERVAL (chậm - 15 phút) thể hiện tư duy tối ưu hóa hiệu năng
+     (tránh làm phiền CPU liên tục) và tuổi thọ thẻ nhớ (giảm số lần ghi vật lý).
+
+  2.2. Ngưỡng Cài đặt (Setpoints & Hysteresis)
+
+   1 #define DEFAULT_TARGET_HUM          60.0f
+   2 #define HYSTERESIS_HUM              2.0f   // (+- 2%)
+   * 60.0f: Độ ẩm mục tiêu mặc định.
+   * HYSTERESIS_HUM (Độ trễ): Khái niệm quan trọng.
+       * Nếu không có Hysteresis: Khi độ ẩm là 60.0%, quạt sẽ bật/tắt liên tục (chattering) nếu độ ẩm dao động nhẹ 59.9
+         - 60.1.
+       * Với biên độ 2%: Hệ thống sẽ bật hút ẩm ở 62% và tắt ở 60%. Khoảng chênh lệch này giúp thiết bị hoạt động ổn
+         định, tránh hỏng Relay/MOSFET do đóng cắt quá nhanh.
+
+  2.3. Bảo vệ Nhiệt (Thermal Protection)
+
+   1 #define TEMP_WATER_HEATER_BOOST     45.0f  // Duoi 45: Boost, Tren 45: Maintain
+   2 #define TEMP_WATER_EMERGENCY        70.0f  // 70C -> Emergency Cut-off
+   * Các ngưỡng này định nghĩa logic của FSM.
+   * 45.0f (Cập nhật từ 60): Điểm chuyển giao chiến thuật. Dưới mức này ưu tiên TỐC ĐỘ (làm nóng nhanh). Trên mức này
+     ưu tiên ỔN ĐỊNH.
+   * 70.0f: Giới hạn cứng. Vượt qua mức này là nguy hiểm, hệ thống phải dừng khẩn cấp.
+
+  ---
+
+  3. CẤU TRÚC DỮ LIỆU TOÀN CỤC (GLOBAL DATA STRUCTURES)
+
+  Đây là các kiểu dữ liệu dùng chung (Shared Data Types) cho toàn bộ dự án.
+
+   1 typedef struct {
+   2     float t_air;
+   3     float h_air;
+   4     float t_water;
+   5     bool air_ok;
+   6     bool water_ok;
+   7     uint32_t error_count;
+   8 } SensorData_t;
+   * Gom nhóm các biến rời rạc vào một struct giúp code gọn gàng, dễ truyền tham số vào hàm (chỉ cần truyền con trỏ
+     SensorData_t *data).
+   * error_count: Biến đếm số lần đọc lỗi liên tiếp. Dùng để quyết định xem có nên kích hoạt chế độ EMERGENCY hay không.
+
+   1 typedef enum {
+   2     STATE_IDLE = 0,
+   3     STATE_HUMIDIFY,   // Tang am
+   4     STATE_DEHUMIDIFY, // Giam am
+   5     STATE_EMERGENCY   // Loi
+   6 } SystemState_t;
+   * Cập nhật: Đã loại bỏ STATE_TEST_SEQ và STATE_DEFROST để đơn giản hóa logic, tập trung vào chức năng cốt lõi.
+   * enum giúp code dễ đọc hơn. Thay vì viết if (state == 1), ta viết if (state == STATE_HUMIDIFY).
+
+  ---
+
+  4. BIẾN TOÀN CỤC (GLOBAL VARIABLES EXTERN)
+
+   1 extern SensorData_t g_sensors;
+   2 extern SystemSetpoints_t g_setpoints;
+   3 extern SystemState_t g_current_state;
+   * Từ khóa `extern`:
+       * Nó báo cho trình biên dịch biết: "Các biến này tồn tại đấy, nhưng nó được khai báo (cấp phát bộ nhớ) ở file
+         khác (cụ thể là VXL.c). Ở đây tôi chỉ mượn tên thôi."
+       * Giúp chia sẻ biến giữa các file .c mà không gây lỗi "Multiple Definition" (Định nghĩa nhiều lần).
+
+  ---
+
+  TỔNG KẾT MODULE CONFIG (Dành cho trả lời vấn đáp)
+
+   1. Tính tập trung: Mọi con số cấu hình nằm ở một nơi duy nhất.
+   2. Chống nhiễu: Cấu hình I2C 20kHz, PWM 1kHz phù hợp đặc tính thiết bị công suất.
+   3. An toàn: Định nghĩa các ngưỡng nhiệt độ bảo vệ cứng (70°C).
+   4. Cấu trúc dữ liệu: Sử dụng struct và enum để code trong sáng, dễ quản lý trạng thái.
+   5. Tại sao dùng `extern`? Để chia sẻ biến toàn cục giữa các file nguồn (.c) mà không vi phạm quy tắc "One Definition
+      Rule" của ngôn ngữ C.
+
+ PHÂN TÍCH CHI TIẾT MODULE: DS18B20 (TEMP SENSOR)
+
+  Mục đích: Giao tiếp với cảm biến nhiệt độ số DS18B20 để đo nhiệt độ nước.
+  Thách thức: Giao thức 1-Wire rất nhạy cảm với thời gian (Timing-critical). Nếu vi điều khiển bị ngắt (interrupt) hoặc
+  bận làm việc khác sai lệch vài µs, dữ liệu sẽ bị sai.
+
+  ---
+
+  1. FILE HEADER: main/ds18b20.h
+
+   1 #ifndef DS18B20_H
+   2 #define DS18B20_H
+   3
+   4 #include "esp_err.h"
+   5 #include "driver/gpio.h"
+   6 #include "config.h" // Sử dụng PIN_DS18B20 từ config
+   * esp_err.h: Thư viện định nghĩa các mã lỗi chuẩn của ESP (như ESP_OK, ESP_ERR_TIMEOUT). Việc trả về mã lỗi chuẩn
+     giúp việc debug ở tầng trên dễ dàng hơn.
+
+   1 void ds18b20_init(gpio_num_t gpio_num);
+   * Hàm khởi tạo: Cấu hình chân GPIO ở chế độ Open-Drain (Cực máng hở).
+   * Tại sao Open-Drain? (Câu hỏi bảo vệ)
+       * Giao thức 1-Wire yêu cầu đường dây tín hiệu có thể được kéo xuống mức thấp (Low) bởi cả Master (ESP32) và Slave
+         (Cảm biến).
+       * Khi không ai kéo, điện trở kéo lên (Pull-up Resistor) sẽ kéo dây lên mức cao (High).
+       * Chế độ Open-Drain cho phép ESP32 kéo chân xuống Mass (GND) hoặc thả nổi (để trở kéo lên làm việc), tránh trường
+         hợp chập mạch nếu cả 2 bên cùng lái (drive) mức áp khác nhau.
+
+   1 esp_err_t ds18b20_trigger_conversion(void);
+   2 esp_err_t ds18b20_read_temp(float *temp);
+   * Tách biệt việc "Ra lệnh đo" (trigger) và "Đọc kết quả" (read).
+   * Tại sao tách biệt?
+       * DS18B20 cần khoảng 750ms để chuyển đổi nhiệt độ (ở độ phân giải 12-bit).
+       * Nếu gộp chung: Hàm sẽ phải chờ (delay) 750ms -> Làm treo cả hệ thống (Blocking).
+       * Tách ra: Gửi lệnh Trigger -> Hệ thống đi làm việc khác -> 750ms sau quay lại gọi hàm Read -> Hệ thống mượt mà
+         (Non-blocking).
+
+  ---
+
+  2. FILE SOURCE: main/ds18b20.c (Code thực tế)
+
+  2.1. Biến tĩnh & Spinlock
+
+   1 static gpio_num_t s_ds18b20_pin = PIN_DS18B20;
+   2 static portMUX_TYPE spinlock = portMUX_INITIALIZER_UNLOCKED;
+   * `spinlock`: Đây là cơ chế khóa cứng (Hard Lock) dùng để bảo vệ đoạn mã quan trọng (Critical Section).
+   * Khi gọi `portENTER_CRITICAL(&spinlock)`, CPU sẽ **vô hiệu hóa toàn bộ ngắt (Interrupts)**. Điều này đảm bảo không có tác vụ nào (Wifi, Timer, Bluetooth) có thể chen ngang khi đang "bit-banging" giao thức 1-Wire.
+
+  2.2. Reset Pulse (Khởi tạo bus)
+
+   1 static bool ow_reset(void) {
+   2     // 1. Drive Low 480us (Reset)
+   3     gpio_set_level(s_ds18b20_pin, 0);
+   4     esp_rom_delay_us(480);
+   5
+   6     // 2. Release & Wait (Critical Section)
+   7     portENTER_CRITICAL(&spinlock);
+   8     gpio_set_level(s_ds18b20_pin, 1);
+   9     portEXIT_CRITICAL(&spinlock);
+   10
+   11    // 3. Wait 70us for Presence Pulse
+   12    esp_rom_delay_us(70);
+   13
+   14    // 4. Sample (Critical)
+   15    portENTER_CRITICAL(&spinlock);
+   16    bool presence = !gpio_get_level(s_ds18b20_pin);
+   17    portEXIT_CRITICAL(&spinlock);
+   18
+   19    // 5. Wait slot end
+   20    esp_rom_delay_us(410);
+   21    return presence;
+   22 }
+   * `esp_rom_delay_us`: Hàm delay chính xác micro-giây nằm trong ROM của ESP32.
+   * Logic: Kéo thấp 480us -> Thả ra -> Chờ 70us -> Đọc xem cảm biến có kéo thấp (Presence) để phản hồi không.
+
+  2.3. Write Bit (Ghi 1 bit)
+
+   1 static void ow_wr_bit(int b) {
+   2     portENTER_CRITICAL(&spinlock); // Bắt đầu đoạn nhạy cảm
+   3
+   4     gpio_set_level(s_ds18b20_pin, 0); // Kéo thấp
+   5
+   6     // Nếu ghi 1: Kéo thấp cực ngắn (6us) rồi thả ngay.
+   7     // Nếu ghi 0: Kéo thấp lâu (60us).
+   8     esp_rom_delay_us(b ? 6 : 60);
+   9
+   10    gpio_set_level(s_ds18b20_pin, 1); // Thả ra
+   11    esp_rom_delay_us(b ? 64 : 10);    // Chờ hết khe thời gian
+   12
+   13    portEXIT_CRITICAL(&spinlock); // Mở lại ngắt
+   14 }
+   * Timing chính xác là yếu tố sống còn. Chỉ cần lệch vài us, bit 0 sẽ bị hiểu thành bit 1. Đó là lý do ta cần `spinlock`.
+
+  2.4. Read Bit (Đọc 1 bit)
+
+   1 static int ow_rd_bit(void) {
+   2     portENTER_CRITICAL(&spinlock);
+   3     gpio_set_level(s_ds18b20_pin, 0); // Kéo thấp để báo hiệu bắt đầu đọc
+   4     esp_rom_delay_us(6);
+   5     gpio_set_level(s_ds18b20_pin, 1); // Thả ra để cảm biến lái
+   6     esp_rom_delay_us(9);              // Chờ tín hiệu ổn định
+   7     int b = gpio_get_level(s_ds18b20_pin); // Chốt mẫu (Sample)
+   8     portEXIT_CRITICAL(&spinlock);
+   9     esp_rom_delay_us(55);             // Chờ hết slot
+   10    return b;
+   11 }
+
+  2.5. Kiểm tra CRC-8 (Tính toàn vẹn dữ liệu)
+
+   1 static uint8_t calc_crc8(const uint8_t *data, size_t len) {
+   2     // Polynomial: x^8 + x^5 + x^4 + 1
+   3     // ... (Logic dịch bit XOR)
+   4 }
+   * Byte thứ 9 từ DS18B20 là mã CRC. Code sẽ tính CRC của 8 byte đầu và so sánh với byte thứ 9 này. Nếu lệch -> Trả về `ESP_ERR_INVALID_CRC` và hủy kết quả đo.
+
+  ---
+
+  TỔNG KẾT MODULE DS18B20 (Dành cho trả lời vấn đáp)
+
+   1. Giao thức: 1-Wire (Bit-banging GPIO).
+   2. Chế độ GPIO: Open-Drain (Input/Output hỗn hợp).
+   3. Bảo vệ thời gian thực: Sử dụng `spinlock` (portENTER_CRITICAL) để vô hiệu hóa ngắt, đảm bảo timing chính xác từng micro-giây.
+   4. An toàn dữ liệu: Sử dụng CRC-8 check.
+   5. Non-blocking: Tách `trigger` và `read` để không làm treo hệ thống trong 750ms thời gian chuyển đổi ADC.
+
+ PHÂN TÍCH CHI TIẾT MODULE: FSM (FINITE STATE MACHINE)
+
+  Mục đích: Quản lý các trạng thái hoạt động của hệ thống, đảm bảo tính tuần tự logic, tránh xung đột điều khiển và thực
+  thi các cơ chế bảo vệ an toàn.
+
+  ---
+
+  1. FILE HEADER: main/fsm.h
+
+   1 #ifndef FSM_H
+   2 #define FSM_H
+   3
+   4 #include "config.h" // Chứa struct SensorData_t, SystemState_t, SystemSetpoints_t
+   5
+   6 void fsm_init(void);
+   * fsm_init: Reset các bộ đếm thời gian (timers) về 0.
+
+   1 void fsm_run_cycle(const SensorData_t *sensors,
+   2                    const SystemSetpoints_t *setpoints,
+   3                    SystemState_t *state,
+   4                    bool emergency_reset_cmd);
+   * Hàm core logic, chạy mỗi 100ms.
+   * Thiết kế stateless (phi trạng thái cục bộ) ở mức tham số: Trạng thái được truyền vào qua con trỏ `state`, giúp FSM dễ dàng được kiểm thử (Unit Test) độc lập.
+
+  ---
+
+  2. FILE SOURCE: main/fsm.c
+
+  2.1. Logic Chuyển Trạng Thái (State Transition Logic)
+
+  A. Global Safety Override (Ưu tiên số 1)
+
+   1     if (current_state != STATE_EMERGENCY) {
+   2         if (sensors->error_count > SENSOR_ERROR_THRESHOLD) critical_error = true;
+   3         if (sensors->water_ok && sensors->t_water > TEMP_WATER_EMERGENCY) critical_error = true;
+   4         if (critical_error) current_state = STATE_EMERGENCY;
+   5     }
+   * Bất kể đang làm gì, nếu phát hiện lỗi cảm biến hoặc nước nóng quá 70 độ C -> Ép chuyển ngay sang EMERGENCY. Đây là lớp bảo vệ cứng.
+
+  B. Normal Hysteresis Logic (Vùng trễ ±2%)
+
+   1         if (current_state == STATE_IDLE) {
+   2             if (sensors->h_air < setpoints->target_hum - HYSTERESIS_HUM) {
+   3                 current_state = STATE_HUMIDIFY; // H < Target - 2%
+   4             }
+   5             else if (sensors->h_air > setpoints->target_hum + HYSTERESIS_HUM) {
+   6                 current_state = STATE_DEHUMIDIFY; // H > Target + 2%
+   7             }
+   8         }
+   * Tại sao cần vùng đệm (Dead-band)? Để tránh hiện tượng "Chattering" (Bật/Tắt liên tục) làm hỏng Relay/MOSFET.
+
+  C. Exit Conditions (Thoát trạng thái)
+
+   1         else if (current_state == STATE_HUMIDIFY) {
+   2             if (sensors->h_air >= setpoints->target_hum) current_state = STATE_IDLE;
+   3             else if (timeout) current_state = STATE_IDLE;
+   4         }
+   * Máy chạy đến khi đạt đúng Target (60%) thì dừng. Nếu kẹt quá 2 tiếng (Max Runtime) cũng tự dừng để bảo vệ.
+
+  2.2. Điều Khiển Thiết Bị (Actuator Control Output)
+
+  STATE_IDLE (Nghỉ - Tản nhiệt dư)
+
+   1         case STATE_IDLE:
+   2             circ_fan_duty = 512; // 50%
+   3             if (sensors->water_ok && sensors->t_water > 45.0f) {
+   4                 case_fan_duty = 819; // 80% (Nước còn nóng -> Thổi mạnh)
+   5             } else {
+   6                 case_fan_duty = 410; // 40% (Mát -> Thổi nhẹ)
+   7             }
+   * Dù nghỉ nhưng quạt tản nhiệt (Case Fan) vẫn chạy thông minh để làm nguội hệ thống về trạng thái an toàn (45°C).
+
+  STATE_HUMIDIFY (Tạo Ẩm - Logic Om Nhiệt)
+
+    1         case STATE_HUMIDIFY:
+    2             if (sensors->t_water < 60.0f) {
+    3                 // PHASE 1: BOOST (< 60C)
+    4                 peltier_duty = 1023; // Max Power
+    5                 case_fan_duty = 0;   // FAN OFF -> Om nhiệt làm nóng nước nhanh
+    6             } else {
+    7                 // PHASE 2: MAINTAIN (>= 60C)
+    8                 peltier_duty = 358;  // ~35%
+    9                 case_fan_duty = 307; // 30% -> Giữ nhiệt ổn định
+   10             }
+   * Kỹ thuật "Om nhiệt" (Thermal Inertia Boosting): Tắt quạt nóng để nhiệt lượng dồn ngược lại đun nước nhanh hơn. Khi đạt 60°C, chuyển sang chế độ duy trì để tránh sôi trào.
+
+  STATE_DEHUMIDIFY (Hút Ẩm)
+
+   1         case STATE_DEHUMIDIFY:
+   2             peltier_duty = 716;  // 70% (Lạnh sâu nhưng không đóng băng)
+   3             blower_duty = 1023;  // Max gió lạnh
+   4             case_fan_duty = 1023;// Max tản nhiệt nóng
+   * Để mặt lạnh ngưng tụ nước tốt nhất, mặt nóng cần giải nhiệt tối đa -> Case Fan 100%.
+
+  STATE_EMERGENCY (Lỗi)
+
+   1         case STATE_EMERGENCY:
+   2             peltier_duty = 0; // Cắt nguồn nhiệt
+   3             case_fan_duty = 1023; // Thổi max để làm nguội khẩn cấp
+   * Cơ chế Fail-Safe: Khi có lỗi, ưu tiên hàng đầu là làm nguội hệ thống.
+
+  ---
+
+  TỔNG KẾT MODULE FSM (Dành cho trả lời vấn đáp)
+
+   1. Kiến trúc: Finite State Machine (Máy trạng thái hữu hạn).
+   2. An toàn:
+       * Có Time-out (2h).
+       * Có bảo vệ quá nhiệt 2 lớp (Logic điều khiển và Logic khẩn cấp).
+       * Chế độ Emergency Fail-Safe.
+   3. Tối ưu năng lượng:
+       * Logic "Om nhiệt" giúp tiết kiệm điện năng đun nước.
+       * Gain Scheduling: Thay đổi Duty Cycle theo nhiệt độ nước.
+   4. Cải tiến mới: Đã loại bỏ hoàn toàn các trạng thái thừa (TEST, DEFROST) giúp code gọn nhẹ và tin cậy hơn.
+
+ PHÂN TÍCH CHI TIẾT MODULE: LCD 1602 (I2C DRIVER)
+
+  Mục đích: Điều khiển màn hình LCD 16x2 thông qua chip chuyển đổi I2C-to-Parallel (PCF8574).
+  Nguyên lý: ESP32 gửi dữ liệu nối tiếp (I2C) -> Chip PCF8574 nhận và bật tắt 8 chân song song (Parallel) -> LCD hiển
+  thị.
+
+  ---
+
+  1. FILE HEADER: main/lcd.h
+
+  Đây là nơi định nghĩa các lệnh điều khiển theo chuẩn của chip HD44780 (Chip điều khiển nằm bên trong màn hình LCD).
+
+  1.1. Cấu hình & Mapping chân (Bit-Masking)
+
+   1 #include "config.h" // LCD_ADDR, I2C_MASTER_NUM
+   2
+   3 #define LCD_BACKLIGHT 0x08  // P3: Điều khiển đèn nền
+   4 #define EN 0b00000100       // P2: Chân Enable (Kích hoạt nhận dữ liệu)
+   5 #define RW 0b00000010       // P1: Read/Write (Thường nối đất để luôn ghi)
+   6 #define RS 0b00000001       // P0: Register Select (Chọn thanh ghi Lệnh hay Dữ liệu)
+   * RS (Register Select):
+       * RS = 0: Gửi lệnh điều khiển (VD: Xóa màn hình, Về đầu dòng).
+       * RS = 1: Gửi dữ liệu hiển thị (VD: Chữ 'A', số '1').
+   * EN (Enable): Chân quan trọng nhất. LCD chỉ nhận dữ liệu tại thời điểm chân này chuyển từ CAO xuống THẤP (Falling Edge).
+
+  1.2. Lệnh chuẩn HD44780
+
+   1 #define LCD_CLEARDISPLAY 0x01
+   2 #define LCD_ENTRYMODESET 0x04
+   3 #define LCD_FUNCTIONSET 0x20
+   * Đây là các mã lệnh (Opcode) tiêu chuẩn.
+
+  ---
+
+  2. FILE SOURCE: main/lcd.c
+
+  2.1. Biến tĩnh (Static State)
+
+   1 static uint8_t lcd_backlight_state = LCD_BACKLIGHT;
+   * Biến này lưu trạng thái đèn nền. Mỗi khi gửi byte dữ liệu, ta phải OR (|) với biến này, nếu không đèn nền sẽ tắt.
+
+  2.2. Hàm cốt lõi: lcd_write_nibble (Gửi 4-bit)
+
+  Màn hình LCD kết nối qua I2C thường dùng chế độ 4-bit mode (chỉ dùng 4 chân dữ liệu D4-D7 thay vì 8 chân D0-D7).
+
+    1 static esp_err_t lcd_write_nibble(uint8_t nibble, uint8_t mode)
+    2 {
+    3     // 1. Gộp dữ liệu: Nibble (4 bit cao) + Mode (RS, RW) + Backlight
+    4     uint8_t data_en = (nibble & 0xF0) | lcd_backlight_state | mode | EN; // EN = 1
+    5     uint8_t data_dis = (nibble & 0xF0) | lcd_backlight_state | mode;      // EN = 0
+    6
+    7     uint8_t tx_data[2] = { data_en, data_dis };
+    8
+    9     // 3. Cơ chế Retry (Thử lại) - Quan trọng cho chống nhiễu
+   10     for (int i = 0; i < 3; i++) {
+   11         err = i2c_master_write_to_device(..., tx_data, 2, ...);
+   12         if (err == ESP_OK) return ESP_OK;
+   13         vTaskDelay(10 / portTICK_PERIOD_MS);
+   14     }
+   15 }
+   * Logic tạo xung: Gửi byte có EN=1, sau đó gửi byte y hệt nhưng EN=0 -> Tạo sườn xuống để LCD chốt dữ liệu.
+
+  2.3. Hàm gửi 1 Byte: lcd_send_byte
+
+  Để gửi 1 byte (8-bit) trong chế độ 4-bit, ta phải cắt nó làm đôi.
+
+   1 static esp_err_t lcd_send_byte(uint8_t data, uint8_t mode)
+   2 {
+   3     // Gửi 4 bit cao (High Nibble)
+   4     err = lcd_write_nibble(data & 0xF0, mode);
+   5     // Gửi 4 bit thấp (Low Nibble) - Dịch lên vị trí cao
+   6     err = lcd_write_nibble((data << 4) & 0xF0, mode);
+   7     return err;
+   8 }
+
+  2.4. Hàm Khởi tạo: lcd_init (Magic Sequence)
+
+  Quá trình khởi tạo LCD rất "khó chiều" vì chip HD44780 chậm và cần trình tự Reset đặc biệt.
+
+    1 esp_err_t lcd_init(void)
+    2 {
+    3     vTaskDelay(100 / portTICK_PERIOD_MS); // Chờ điện áp ổn định
+    4
+    5     // 1. Magic Sequence (Reset mềm về 8-bit)
+    6     // Gửi lệnh 0x30 ba lần liên tiếp để đảm bảo LCD thoát khỏi mọi trạng thái lửng lơ.
+    7     lcd_write_nibble(0x30, 0); vTaskDelay(5...);
+    8     lcd_write_nibble(0x30, 0); vTaskDelay(1...);
+    9     lcd_write_nibble(0x30, 0); vTaskDelay(1...);
+   10
+   11     // 2. Chuyển sang chế độ 4-bit
+   12     lcd_write_nibble(0x20, 0);
+   13
+   14     // 3. Cấu hình chi tiết (2 dòng, font 5x8)
+   15     lcd_send_cmd(LCD_FUNCTIONSET | LCD_2LINE);
+   16     lcd_send_cmd(LCD_DISPLAYCONTROL | LCD_DISPLAYON);
+   17     lcd_clear();
+   18 }
+
+  2.5. Các hàm hiển thị số (Helpers)
+
+   1 void lcd_send_float(float number, int precision) {
+   2     char buffer[16];
+   3     char fmt[8];
+   4     snprintf(fmt, sizeof(fmt), "%%.%df", precision); // Tạo format string động (VD: "%.1f")
+   5     snprintf(buffer, sizeof(buffer), fmt, number);   // In số ra buffer
+   6     lcd_send_string(buffer);
+   7 }
+   * Sử dụng `snprintf` để chuyển đổi số thực thành chuỗi ký tự an toàn, tránh tràn bộ đệm.
+
+  ---
+
+  TỔNG KẾT MODULE LCD (Dành cho trả lời vấn đáp)
+
+   1. Giao thức: I2C -> Parallel (PCF8574).
+   2. Chế độ: 4-bit (tiết kiệm chân).
+   3. Khởi tạo: Phải tuân thủ trình tự "Magic Sequence" (3 lần 0x30) để reset chip HD44780.
+   4. Hiển thị: Dùng `snprintf` để format số liệu. 
+
+ PHÂN TÍCH CHI TIẾT MODULE: PWM (ACTUATOR CONTROL)
+
+  Mục đích: Điều khiển tốc độ quay của quạt và công suất làm lạnh/nóng của Peltier thông qua điều chế độ rộng xung
+  (PWM).
+  Công nghệ: Sử dụng bộ ngoại vi LEDC (LED Controller) của ESP32. Mặc dù tên là LED Controller, nhưng nó là bộ tạo PWM
+  phần cứng cực kỳ mạnh mẽ và ổn định.
+
+  ---
+
+  1. FILE HEADER: main/pwm.h
+
+   1 #ifndef PWM_H
+   2 #define PWM_H
+   3
+   4 #include "driver/ledc.h"
+   5 #include "config.h" // Chứa PWM_FREQ, PWM_RES, PWM_MAX_DUTY
+   * driver/ledc.h: Thư viện điều khiển PWM của ESP-IDF.
+
+   * Các cấu hình (PWM_FREQ, PWM_RES) nay đã được dời sang `config.h` để quản lý tập trung.
+   * Tần số 1000 Hz: (Câu hỏi bảo vệ thường gặp)
+       * Tần số này được chọn dựa trên đặc tính của Optocoupler PC817 (linh kiện cách ly quang trong module MOSFET).
+       * PC817 có thời gian đáp ứng (Rise/Fall time) khoảng 18µs.
+       * Nếu dùng tần số cao (ví dụ 20kHz -> chu kỳ 50µs), PC817 sẽ không kịp đóng ngắt hoàn toàn -> Tín hiệu ra bị méo
+         -> MOSFET hoạt động trong vùng tuyến tính -> Nóng và Nổ.
+       * 1kHz (Chu kỳ 1000µs) là rất an toàn cho PC817 hoạt động.
+   * Độ phân giải 10-bit:
+       * Cho phép chia nhỏ công suất thành $2^{10} = 1024$ mức (0 đến 1023). Đủ mịn để điều khiển PID hoặc Fuzzy sau
+         này.
+
+   1 void mosfet_init(void);
+   2 void mosfet_set_pump(bool on);
+   3 void pwm_set_peltier(uint32_t duty, int fade_ms);
+   4 // ... các hàm set khác
+   5 void pwm_stop_all(void);
+   * fade_ms: Tham số thời gian chuyển đổi mềm (Soft-start). Thay vì bật cái "bụp" từ 0 lên 100%, nó sẽ tăng dần dần.
+     Rất tốt cho tuổi thọ quạt và nguồn điện.
+
+  ---
+
+  2. FILE SOURCE: main/pwm.c
+
+  2.1. Cấu hình Kênh (Channel Configuration)
+
+   1 #include "pwm.h"
+   2 #include "esp_log.h"
+   3 #include "config.h"
+   * Các macro ánh xạ kênh (`PWM_CH_...`, `LEDC_MODE`) đã được định nghĩa trong `config.h`.
+
+    1 static void config_pwm_channel(ledc_channel_t ch, int pin) {
+    2     ledc_channel_config_t cfg = {
+    3         .gpio_num   = pin,
+    4         .speed_mode = LEDC_MODE,
+    5         .channel    = ch,
+    6         .intr_type  = LEDC_INTR_DISABLE,
+    7         .timer_sel  = LEDC_TIMER,
+    8         .duty       = 0,
+    9         .hpoint     = 0
+   10     };
+   11     ledc_channel_config(&cfg);
+   12 }
+   * Hàm tiện ích này giúp cấu hình nhanh từng kênh PWM (Peltier, Blower, Case, Circ) mà không phải viết lại code lặp đi
+     lặp lại.
+
+  2.2. Khởi tạo Phần Cứng: mosfet_init
+
+    1 void mosfet_init(void) {
+    2     // 1. Cấu hình Bơm (Digital Output - On/Off)
+    3     gpio_config_t out_conf = { ... .mode = GPIO_MODE_OUTPUT ... };
+    4     gpio_config(&out_conf);
+    5     gpio_set_level(PIN_PUMP, 0); // Mặc định tắt
+    6
+    7     // 2. Cấu hình Timer PWM (Tạo xung nhịp gốc)
+    8     ledc_timer_config_t timer_conf = {
+    9         .speed_mode = LEDC_MODE,
+   10         .timer_num  = LEDC_TIMER,
+   11         .duty_resolution = PWM_RES, // 10-bit (từ config.h)
+   12         .freq_hz = PWM_FREQ,        // 1000 Hz (từ config.h)
+   13         .clk_cfg = LEDC_AUTO_CLK
+   14     };
+   15     ledc_timer_config(&timer_conf);
+   16
+   17     // 3. Gắn Timer vào từng Chân (Channel)
+   18     config_pwm_channel(PWM_CH_BLOWER, PIN_FAN_BLOWER);
+   19     config_pwm_channel(PWM_CH_CASE,   PIN_FAN_CASE);
+   20     config_pwm_channel(PWM_CH_PELTIER, PIN_PELTIER);
+   21     config_pwm_channel(PWM_CH_CIRC,   PIN_FAN_CIRC);
+   22
+   23     // 4. Cài đặt dịch vụ Fade (Quan trọng)
+   24     ledc_fade_func_install(0);
+   25 }
+   * Quy trình: Timer -> Channel -> GPIO.
+   * ledc_fade_func_install(0): Đây là lệnh kích hoạt driver xử lý ngắt Fade trong nền. Nếu thiếu lệnh này, chức năng
+     ledc_set_fade_with_time sẽ bị lỗi crash. Số 0 là cờ mặc định (không ưu tiên ngắt IRAM).
+
+  2.3. Điều khiển thông minh: set_pwm_duty
+
+  Hàm này kết hợp cả điều khiển tức thì và điều khiển mềm (Fade).
+
+    1 static void set_pwm_duty(ledc_channel_t ch, uint32_t duty, int fade_ms) {
+    2     if (duty > PWM_MAX_DUTY) duty = PWM_MAX_DUTY; // Clamp (Kẹp giá trị)
+    3
+    4     if (fade_ms > 0) {
+    5         // Chế độ Soft-Start (Khởi động mềm)
+    6         ledc_set_fade_with_time(LEDC_MODE, ch, duty, fade_ms);
+    7         ledc_fade_start(LEDC_MODE, ch, LEDC_FADE_NO_WAIT);
+    8     } else {
+    9         // Chế độ Instant (Tức thì)
+   10         ledc_set_duty(LEDC_MODE, ch, duty);
+   11         ledc_update_duty(LEDC_MODE, ch);
+   12     }
+   13 }
+   * LEDC_FADE_NO_WAIT: Đây là điểm tinh tế. Hàm ledc_fade_start sẽ trả về ngay lập tức (Non-blocking), việc thay đổi độ
+     rộng xung sẽ do phần cứng tự làm trong nền. CPU không bị treo để chờ quạt tăng tốc.
+   * Tại sao cần Soft-Start?
+       * Giảm dòng khởi động (Inrush Current) giúp bảo vệ nguồn tổ ong không bị sụt áp đột ngột (gây reset ESP32).
+       * Giảm sốc cơ khí cho trục quạt.
+
+  2.4. Hàm tắt khẩn cấp: pwm_stop_all
+
+   1 void pwm_stop_all(void) {
+   2     mosfet_set_pump(false);
+   3
+   4     // Set trực tiếp về 0, không fade (Cắt ngay lập tức)
+   5     ledc_set_duty(LEDC_MODE, PWM_CH_PELTIER, 0);
+   6     ledc_update_duty(LEDC_MODE, PWM_CH_PELTIER);
+   7     // ... (Tương tự cho các kênh khác)
+   8 }
+   * Hàm này dùng trong trường hợp khẩn cấp hoặc khi chuyển chế độ cài đặt. Nó bỏ qua hiệu ứng Fade để đảm bảo ngắt điện
+     nhanh nhất có thể (Hard Stop).
+
+  ---
+
+  TỔNG KẾT MODULE PWM (Dành cho trả lời vấn đáp)
+
+   1. Công nghệ: LEDC Hardware PWM (Không dùng Software PWM tốn CPU).
+   2. Thông số: 1kHz, 10-bit Resolution.
+   3. Soft-Start: Dùng phần cứng Fade để bảo vệ nguồn và tải, tránh sụt áp hệ thống.
+   4. Tại sao Bơm (Pump) dùng GPIO thường? Vì máy bơm khí thường là loại Solenoid hoặc động cơ DC đơn giản, chỉ cần
+      bật/tắt (On/Off), không cần chỉnh tốc độ, và quán tính nó lớn nên PWM cũng không hiệu quả.
+
+ PHÂN TÍCH CHI TIẾT MODULE: SD CARD (STORAGE)
+
+  Mục đích: Lưu trữ lịch sử nhiệt độ/độ ẩm vào thẻ nhớ microSD để trích xuất và phân tích trên máy tính (Excel).
+  Công nghệ: Giao tiếp SPI kết hợp thư viện ESP-VFS-FAT (Virtual File System - FAT32).
+
+  ---
+
+  1. FILE HEADER: main/sd.h
+
+   1 #include "esp_vfs_fat.h"
+   2 #include "sdmmc_cmd.h"
+   3 #include "config.h" // Chứa PIN_SD_CS, MOSI, MISO, CLK
+   * esp_vfs_fat.h: Thư viện của ESP-IDF giúp biến thẻ nhớ thành một ổ đĩa ảo, cho phép dùng các hàm chuẩn C như fopen, fprintf, fclose thay vì phải gửi lệnh sector raw.
+   * Các chân SPI (CS, MOSI, MISO, CLK) được lấy từ `config.h` để dễ dàng cấu hình.
+
+  2. FILE SOURCE: main/sd.c
+
+  2.1. Khởi tạo: sd_card_init
+
+  Quá trình khởi tạo thẻ nhớ qua SPI rất phức tạp, gồm nhiều bước:
+
+    1 esp_err_t sd_card_init(void) {
+    2     // 1. Cấu hình Mount (Virtual File System)
+    3     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+    4         .format_if_mount_failed = false, // Không tự format (để bảo vệ dữ liệu cũ)
+    5         .max_files = 5,
+    6         .allocation_unit_size = 16 * 1024
+    7     };
+    8
+    9     // 2. Cấu hình Bus SPI
+   10     spi_bus_config_t bus_cfg = {
+   11         .mosi_io_num = PIN_SD_MOSI,
+   12         .miso_io_num = PIN_SD_MISO,
+   13         .sclk_io_num = PIN_SD_CLK,
+   14         .quadwp_io_num = -1,
+   15         .quadhd_io_num = -1,
+   16         .max_transfer_sz = 4000,
+   17     };
+   18     // Khởi tạo SPI Bus (Nếu chưa ai khởi tạo)
+   19     spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
+   20
+   21     // 3. Cấu hình Slot SD (Gắn chân CS)
+   22     sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+   23     slot_config.gpio_cs = PIN_SD_CS;
+   24
+   25     // 4. Mount File System
+   26     return esp_vfs_fat_sdspi_mount(MOUNT_POINT, &host, &slot_config, &mount_config, &card);
+   27 }
+   * `SDSPI_DEFAULT_DMA`: Sử dụng DMA để truyền tải dữ liệu nền, không chiếm dụng CPU khi ghi file lớn.
+   * `format_if_mount_failed = false`: Ngăn chặn việc mất dữ liệu oan nếu thẻ nhớ bị lỗi nhẹ khi khởi động.
+
+  2.2. Tự động đặt tên file: sd_get_next_filename
+
+  Thuật toán này giúp tạo ra một file log mới mỗi lần khởi động lại (log_0.csv, log_1.csv...) mà không ghi đè file cũ.
+
+    1 void sd_get_next_filename(const char* base_name, const char* ext, char *out_name, size_t len) {
+    2     int index = 0;
+    3     while (index < 1000) {
+    4         snprintf(out_name, len, "%s/%s_%d%s", MOUNT_POINT, base_name, index, ext);
+    5         struct stat st;
+    6         // Kiểm tra xem file đã tồn tại chưa bằng hàm stat()
+    7         if (stat(out_name, &st) != 0) {
+    8             // stat != 0 => File chưa tồn tại => Dùng tên này!
+    9             return;
+   10         }
+   11         index++;
+   12     }
+   13 }
+   * Hàm `stat()` là hàm hệ thống cực mạnh để kiểm tra metadata của file (kích thước, ngày tạo, tồn tại hay không).
+
+  2.3. Ghi dữ liệu: sd_card_append_file
+
+    1 esp_err_t sd_card_append_file(const char *path, const char *data) {
+    2     // Mở file chế độ "Append" (a) -> Ghi nối tiếp vào cuối
+    3     FILE *f = fopen(path, "a");
+    4     if (f == NULL) return ESP_FAIL;
+    5     fprintf(f, "%s", data);
+    6     fclose(f); // Đóng ngay để flush dữ liệu xuống thẻ
+    7     return ESP_OK;
+    8 }
+
+  2.4. Đọc kiểm tra: sd_card_dump_file_to_console
+
+  Hàm tiện ích giúp in toàn bộ nội dung file ra màn hình Terminal để debug mà không cần tháo thẻ nhớ cắm vào máy tính.
+
+    1 esp_err_t sd_card_dump_file_to_console(const char *path) {
+    2     FILE *f = fopen(path, "r");
+    3     char buffer[128];
+    4     while (fgets(buffer, sizeof(buffer), f) != NULL) {
+    5         printf("%s", buffer); // In từng dòng ra Console
+    6     }
+    7     fclose(f);
+    8 }
+
+  ---
+
+  TỔNG KẾT MODULE SD CARD (Dành cho trả lời vấn đáp)
+
+   1. Giao thức: SPI Mode (Chậm hơn SDIO nhưng tiết kiệm chân, dễ debug).
+   2. Hệ thống tập tin: FAT32.
+   3. Quản lý file:
+       * Tự động đặt tên file (Auto-increment) tránh ghi đè.
+       * Luôn dùng chế độ Append ("a") để nối tiếp dữ liệu.
+   4. Hiệu năng: Sử dụng DMA (`SDSPI_DEFAULT_DMA`) để giảm tải cho CPU khi ghi chép.
+    
+
+ PHÂN TÍCH CHI TIẾT MODULE: SHT35 (ENVIRONMENT SENSOR)
+
+  Mục đích: Đọc nhiệt độ và độ ẩm môi trường từ cảm biến SHT35 qua I2C.
+  Đặc điểm: SHT35 là dòng cao cấp, độ chính xác ±1.5% RH. Nó hỗ trợ CRC-8 để kiểm tra lỗi truyền tin.
+
+  ---
+
+  1. FILE HEADER: main/sht35.h
+
+   1 #include "config.h" // SHT35_ADDR_DEFAULT
+   2
+   3 void sht35_init(i2c_port_t port, uint8_t addr);
+   4 esp_err_t sht35_start_measurement(void);
+   5 esp_err_t sht35_read_data(float *t, float *h);
+   * Địa chỉ I2C được lấy trực tiếp từ `config.h` (`SHT35_ADDR_DEFAULT`), đảm bảo tính nhất quán toàn hệ thống.
+   * Tương tự DS18B20, driver này cũng tách biệt hàm `start` (gửi lệnh đo) và hàm `read` (đọc kết quả) để tránh blocking CPU trong 15ms thời gian chuyển đổi.
+
+  ---
+
+  2. FILE SOURCE: main/sht35.c
+
+  2.1. Các mã lệnh (Command Codes)
+
+   1 // High Repeatability, No Clock Stretching
+   2 #define CMD_MEAS_HIGH_REP_NO_STRETCH_MSB    0x24
+   3 #define CMD_MEAS_HIGH_REP_NO_STRETCH_LSB    0x00
+   * **High Repeatability:** Cảm biến đo lâu hơn, lấy mẫu nội bộ nhiều hơn để giảm nhiễu -> Kết quả chính xác nhất (nhưng chậm nhất, ~15ms).
+   * **No Clock Stretching:**
+       * Clock Stretching là tính năng mà Slave giữ chân SCL mức thấp để báo Master chờ.
+       * Tuy nhiên, trong môi trường nhiễu, Master có thể hiểu nhầm nhiễu là Clock Stretching và chờ mãi mãi (Timeout/Deadlock).
+       * Giải pháp: Tắt Clock Stretching, thay vào đó ta dùng `vTaskDelay` cố định (20ms) ở tầng ứng dụng rồi mới đọc. Cách này an toàn và dễ kiểm soát hơn.
+
+  2.2. Hàm tính CRC-8 (Quan trọng nhất)
+
+  SHT35 gửi về 6 byte theo thứ tự: `[Temp MSB] [Temp LSB] [CRC Temp] [Hum MSB] [Hum LSB] [CRC Hum]`.
+
+    1 // Đa thức: x^8 + x^5 + x^4 + 1 (0x31). Init: 0xFF.
+    2 static uint8_t sht35_crc8(const uint8_t *data, size_t len) {
+    3     uint8_t crc = 0xFF; // Giá trị khởi tạo chuẩn Sensirion
+    4     for (size_t i = 0; i < len; i++) {
+    5         crc ^= data[i];
+    6         for (uint8_t bit = 8; bit > 0; --bit) {
+    7             if (crc & 0x80)
+    8                 crc = (crc << 1) ^ 0x31; // XOR với đa thức
+    9             else
+   10                 crc = (crc << 1);
+   11         }
+   12     }
+   13     return crc;
+   14 }
+   * Hàm này mô phỏng thuật toán chia nhị phân (Modulo 2 division) trên trường Galois GF(2).
+   * Byte thứ 3 (CRC Temp) dùng để kiểm tra tính toàn vẹn của Byte 1 và 2. Nếu tính toán sai khác với byte nhận được, chứng tỏ có bit bị lật do nhiễu EMI -> Dữ liệu phải bị hủy bỏ (`ESP_ERR_INVALID_CRC`).
+
+  2.3. Hàm khởi động đo: sht35_start_measurement
+
+   1 esp_err_t sht35_start_measurement(void) {
+   2     uint8_t cmd[] = {CMD_MEAS_HIGH_REP_NO_STRETCH_MSB, CMD_MEAS_HIGH_REP_NO_STRETCH_LSB};
+   3     // Sử dụng SHT35_ADDR_DEFAULT từ config.h
+   4     return i2c_master_write_to_device(SHT_PORT, SHT35_ADDR_DEFAULT, cmd, 2, timeout);
+   5 }
+   * Đơn giản là gửi 2 byte lệnh `0x2400` để đánh thức cảm biến dậy làm việc.
+
+  2.4. Hàm đọc dữ liệu: sht35_read_data
+
+    1 esp_err_t sht35_read_data(float *t, float *h) {
+    2     uint8_t d[6];
+    3     // Đọc 6 byte về
+    4     ret = i2c_master_read_from_device(SHT_PORT, SHT35_ADDR_DEFAULT, d, 6, ...);
+    5
+    6     // 1. Kiểm tra CRC Nhiệt độ (Byte 0,1 so với Byte 2)
+    7     if (sht35_crc8(&d[0], 2) != d[2]) return ESP_ERR_INVALID_CRC;
+    8
+    9     // 2. Kiểm tra CRC Độ ẩm (Byte 3,4 so với Byte 5)
+   10     if (sht35_crc8(&d[3], 2) != d[5]) return ESP_ERR_INVALID_CRC;
+   11
+   12     // 3. Chuyển đổi Raw sang giá trị vật lý (Công thức Datasheet)
+   13     uint16_t t_raw = (d[0] << 8) | d[1];
+   14     *t = -45.0f + 175.0f * ((float)t_raw / 65535.0f);
+   15
+   16     uint16_t h_raw = (d[3] << 8) | d[4];
+   17     *h = 100.0f * ((float)h_raw / 65535.0f);
+   18
+   19     return ESP_OK;
+   20 }
+   * Công thức chuyển đổi tuyến tính:
+       * $T = -45 + 175 \times \frac{S_{T}}{2^{16}-1}$
+       * $RH = 100 \times \frac{S_{RH}}{2^{16}-1}$
+
+  ---
+
+  TỔNG KẾT MODULE SHT35 (Dành cho trả lời vấn đáp)
+
+   1. Giao thức: I2C chuẩn (Address cố định trong config).
+   2. Độ tin cậy: Sử dụng CRC-8 để loại bỏ dữ liệu sai do nhiễu EMI.
+   3. Timing:
+       * Dùng chế độ **No Clock Stretching** để tránh treo bus.
+       * Dùng phần mềm để delay (Non-blocking) giữa lệnh đo và lệnh đọc.
+   4. Cấu hình: High Repeatability để ưu tiên độ chính xác hơn tốc độ.
+
+
+ PHÂN TÍCH CHI TIẾT MODULE: VXL.c (MAIN APPLICATION)
+
+  Mục đích: Khởi tạo hệ thống, chạy vòng lặp chính (Super Loop), quản lý tương tác người dùng và điều phối luồng dữ
+  liệu.
+  Kiến trúc: Tuần tự (Sequential), không dùng RTOS Task phụ.
+
+  ---
+
+  1. KHAI BÁO & BIẾN TOÀN CỤC
+
+   1 // ================= GLOBAL VARS =================
+   2 SensorData_t g_sensors = {0};
+   3 SystemSetpoints_t g_setpoints = { .target_hum = DEFAULT_TARGET_HUM, .mode = 0 };
+   4 SystemState_t g_current_state = STATE_IDLE;
+   * Đây là nơi cấp phát bộ nhớ thực sự cho các biến toàn cục mà ta đã khai báo extern trong config.h.
+   * Khởi tạo giá trị mặc định an toàn (0 hoặc IDLE) để tránh hành vi bất thường khi vừa bật máy.
+
+   1 // Buffer lớn cho 15 phút dữ liệu (Log đệm)
+   2 static char s_sd_buffer[12288] = {0};
+   * Chiến lược RAM Buffer: Cấp phát tĩnh (Static) một mảng 12KB trong vùng nhớ BSS (RAM).
+   * Tại sao Static? Để bộ nhớ này tồn tại suốt đời chương trình, không bị thu hồi như biến cục bộ trong hàm stack.
+   * Tại sao 12KB?
+       * 15 phút = 900 giây.
+       * Lấy mẫu 5s/lần -> 180 mẫu.
+       * Mỗi dòng CSV khoảng 60 ký tự (byte).
+       * $180 \times 60 = 10800$ bytes.
+       * Cấp 12288 bytes (12KB) là dư giả và an toàn.
+
+  ---
+
+  2. HÀM KHỞI TẠO: app_main
+
+  ESP32 bắt đầu chạy từ hàm này (tương tự main() trong C chuẩn).
+
+   1 void app_main(void) {
+   2     // 1. Hardware Init
+   3     init_i2c(); // 20kHz
+   4     lcd_init(); // Khởi tạo LCD
+   5     sht35_init(...);
+   6     ds18b20_init(...);
+   7     mosfet_init(); // PWM 1kHz
+   8     button_init(...); // Pull-up Inputs
+   * Thứ tự khởi tạo rất quan trọng. I2C và PWM (Output) phải được cấu hình trước khi FSM chạy để đảm bảo trạng thái các
+     chân điều khiển là xác định (không thả nổi kích hoạt nhầm Relay).
+
+   1     // 2. SD Card Init
+   2     if (sd_card_init() == ESP_OK) {
+   3         // Tự động tìm tên file mới (log_0 -> log_1...)
+   4         sd_get_next_filename("data", ".csv", ...);
+   5         // Ghi dòng Header đầu tiên
+   6         sd_card_append_file(log_filename, "Filename,Time_ms,T_Air_Avg,H_Air_Avg,T_Water\n");
+   7     }
+   * Logic này đảm bảo mỗi lần Reset mạch là ta có một file log mới, sạch sẽ, không lẫn lộn với dữ liệu cũ.
+
+  ---
+
+  3. VÒNG LẶP VÔ TẬN: while (1)
+
+  Đây là trái tim của hệ thống. Nó lặp lại liên tục với tốc độ được kiểm soát bởi vTaskDelay.
+
+  3.1. Nhánh 1: Lấy mẫu tốc độ cao & FSM (250ms)
+
+    1         if (!is_setup_mode && (now - last_sensor_read > SHT_SAMPLE_INTERVAL_MS)) {
+    2             last_sensor_read = now;
+    3
+    4             // A. Đọc SHT35 (Có Delay 20ms bên trong để chờ đo)
+    5             sht35_start_measurement();
+    6             vTaskDelay(pdMS_TO_TICKS(20)); // Non-blocking delay của FreeRTOS
+    7             sht35_read_data(&ta_raw, &ha_raw);
+    8
+    9             // B. Bộ lọc Moving Average (Cửa sổ trượt)
+   10             // Thêm mẫu mới vào mảng vòng (Circular Buffer)
+   11             s_t_history[s_ma_head] = ta_raw;
+   12             s_ma_head = (s_ma_head + 1) % MA_WINDOW_SIZE;
+   13
+   14             // Tính trung bình cộng của 20 mẫu gần nhất
+   15             g_sensors.t_air = t_sum / s_ma_count;
+   16
+   17             // C. Chạy Logic FSM với dữ liệu đã lọc
+   18             fsm_run_cycle(&g_sensors, &g_setpoints, &g_current_state, false);
+   19
+   20             // D. Cập nhật LCD
+   21             lcd_show_status();
+   22         }
+   * Tại sao lại lọc ở đây? SHT35 rất nhạy. Nếu gió quạt thổi qua, độ ẩm có thể nhảy loạn xạ (60% -> 65% -> 58%). Việc
+     lấy trung bình 20 mẫu (trong 5 giây) giúp đường tín hiệu trở nên phẳng lì, giúp FSM không bị "giật cục".
+
+  3.2. Nhánh 2: Ghi Log vào RAM (5s)
+
+    1         if (!is_setup_mode && ... (now - last_log_5s > LOG_INTERVAL_MS)) {
+    2             // Format chuỗi CSV
+    3             int len = snprintf(line, ..., "%s,%lu,%.2f,%.2f,%.2f\n", ...);
+    4
+    5             // Copy vào RAM Buffer
+    6             if (s_buffer_len + len < sizeof(s_sd_buffer) - 1) {
+    7                 memcpy(s_sd_buffer + s_buffer_len, line, len);
+    8                 s_buffer_len += len;
+    9             }
+   10         }
+   * Thao tác memcpy trong RAM cực nhanh (vài micro giây). Nó hoàn toàn không ảnh hưởng đến việc điều khiển quạt hay đọc
+     cảm biến.
+
+  3.3. Nhánh 3: Xả xuống thẻ nhớ (15 phút)
+
+   1         if (!is_setup_mode && ... (now - last_flush_15m > FLUSH_INTERVAL_MS)) {
+   2             // Ghi một cục lớn (Bulk Write)
+   3             esp_err_t err = sd_card_append_file(log_filename, s_sd_buffer);
+   4             if (err == ESP_OK) {
+   5                 s_buffer_len = 0; // Xóa sạch bộ đệm, bắt đầu chu kỳ mới
+   6             }
+   7         }
+   * Đây là lúc hệ thống có thể bị khựng lại khoảng 100-500ms. Nhưng vì nó chỉ xảy ra 15 phút một lần, nên chấp nhận
+     được.
+
+  3.4. Nhánh 4: Xử lý Nút nhấn (User Interaction)
+
+    1         if (button_is_down(PIN_BTN_MODE)) {
+    2             mode_hold_cnt++; // Tăng mỗi 100ms
+    3             if (mode_hold_cnt >= 30) { // Đủ 3 giây
+    4                 // TOGGLE MODE
+    5                 if (!is_setup_mode) {
+    6                     // RUN -> SETUP
+    7                     pwm_stop_all(); // CẮT ĐIỆN NGAY
+    8                     is_setup_mode = true;
+    9                 } else {
+   10                     // SETUP -> RUN
+   11                     vTaskDelay(pdMS_TO_TICKS(5000)); // DELAY 5s
+   12                     lcd_init(); fsm_init(); // RE-INIT
+   13                     is_setup_mode = false;
+   14                 }
+   15             }
+   16         }
+   * Chống nhiễu: Logic giữ nút 3 giây kết hợp với việc cắt nguồn (Setup) và chờ ổn định 5s (Resume) là chìa khóa vàng
+     để hệ thống này hoạt động ổn định trong môi trường nhiễu cao.
+
+  3.5. Nhịp tim vòng lặp (Loop Cadence)
+
+   1         vTaskDelay(pdMS_TO_TICKS(100));
+   * Hàm này giới hạn tốc độ vòng lặp chính ở mức 10Hz (100ms/lần).
+   * Nó cũng trả quyền điều khiển lại cho hệ điều hành FreeRTOS nền để làm các việc hệ thống (như Watchdog, Wifi stack
+     nếu có).
+
+  ---
+
+  TỔNG KẾT VXL.c (Dành cho trả lời vấn đáp)
+
+   1. Mô hình: Super Loop tuần tự.
+   2. Đa nhiệm: Giả lập đa nhiệm bằng cách kiểm tra thời gian (now - last_time > interval).
+       * Cảm biến: 250ms.
+       * Log RAM: 5s.
+       * Log SD: 15min.
+       * UI: 100ms.
+   3. Quản lý bộ nhớ: Sử dụng Static Buffer 12KB để tránh phân mảnh Heap.
+   4. An toàn: Logic Setup/Resume chặt chẽ giúp "F5" lại hệ thống mỗi khi người dùng can thiệp.

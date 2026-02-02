@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_log.h"
+#include "driver/i2c.h"
+#include "driver/gpio.h"
+
+// Include drivers
+#include "config.h"
+#include "lcd.h"
+#include "sht35.h"
+#include "pwm.h"
+#include "sd.h"
+
+#define TAG "TEST_MODE"
+
+// hàm khởi tạo nhanh I2C cho chế độ Test
+static void init_i2c_master(void) {
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
+    i2c_param_config(I2C_MASTER_NUM, &conf);
+    i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0);
+}
+
+void app_main(void) {
+    ESP_LOGI(TAG, "=== STARTING CONTINUOUS HUMIDIFY TEST ===");
+
+    // 1. INITIALIZATION
+    init_i2c_master();
+    lcd_init();
+    sht35_init(I2C_MASTER_NUM, SHT35_ADDR_DEFAULT);
+    mosfet_init();
+    sd_card_init();
+
+    // 2. PREPARE LOG FILE
+    char filename[32] = {0};
+    if (sd_card_is_mounted()) {
+        sd_get_next_filename("test_hum", ".csv", filename, sizeof(filename));
+        ESP_LOGI(TAG, "Logging to: %s", filename);
+        sd_card_append_file(filename, "Time_ms,T_Air,H_Air,Pump_State,Peltier_Duty\n");
+    }
+
+    lcd_clear();
+    lcd_send_string("MODE: MAX HUMID");
+    lcd_put_cur(1, 0);
+    lcd_send_string("Init Hardware...");
+    vTaskDelay(pdMS_TO_TICKS(2000));
+
+    // 3. ACTIVATE HUMIDIFIER (FORCE ON)
+    ESP_LOGW(TAG, ">>> ACTUATORS ON: Pump=ON, Peltier=100%%, Fan=50%% <<<");
+    
+    mosfet_set_pump(true);          // Bật bơm
+    pwm_set_peltier(1023, 1000);    // Max công suất nóng
+    pwm_set_circ(1000, 1000);        // Quạt quẩn hoàn thổi ẩm ra
+    
+    pwm_set_blower(0, 0);           // Tắt các quạt làm lạnh
+    pwm_set_case(1000, 0); 
+
+    // 4. MAIN LOOP
+    char lcd_buf[20];
+    char log_buf[64];
+    float t_air = 0, h_air = 0;
+
+    while (1) {
+        sht35_start_measurement();
+        vTaskDelay(pdMS_TO_TICKS(500)); 
+
+        esp_err_t ret = sht35_read_data(&t_air, &h_air);
+        
+        if (ret == ESP_OK) {
+            // Hiển thị LCD
+            lcd_put_cur(0, 0);
+            lcd_send_string("RUNNING: HUMID+ ");
+            lcd_put_cur(1, 0);
+            snprintf(lcd_buf, sizeof(lcd_buf), "T:%.1f H:%.1f    ", t_air, h_air);
+            lcd_send_string(lcd_buf);
+
+            ESP_LOGI(TAG, "SHT35: Temp=%.2f, Hum=%.2f %%", t_air, h_air);
+
+            // Ghi SD Card
+            if (sd_card_is_mounted() && filename[0] != 0) {
+                uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
+                snprintf(log_buf, sizeof(log_buf), "%lu,%.2f,%.2f,1,1023\n", now, t_air, h_air);
+                sd_card_append_file(filename, log_buf);
+            }
+        } else {
+            ESP_LOGE(TAG, "SHT35 Read Error");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}

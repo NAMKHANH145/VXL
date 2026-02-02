@@ -1,0 +1,1089 @@
+Yêu cầu chung: Đo và so sánh giữa các môi trường gần với nhau, lập bảng và đồ thi tương ứng (cùng thể tích, cùng độ ẩm, ...) 
+nên có 1 file doc, ghi cách set up. sau đấy mới là dữ liệu đo ( có thông tin thời gian đo).  
+đối với dữ liệu đo mọi người nên đo 5s 1 mẫu, đo trên 2 tiếng.
+Các nhóm đo 5s/1 mẫu 
+mỗi nhóm 10-20 bộ dữ liệu nhé, ít nhất 2 tiếng và vẽ đồ thị 
+chỉ nhận sheet hoặc file csv hoặc text
+Gửi anh kích thước hộp, tên sensor và cách các em đặt sensor (đo trong đèn phòng hay đo trong tối)
+10 bài test: Mỗi bài 2 session, mỗi session 2 tiếng, mỗi 5s 1 mẫu
+
+Bài test 1: Kiểm tra hệ thống khi tăng ẩm và khả năng giữ độ ẩm ở mức cao
+**Mục tiêu:** Đo thời gian nhanh nhất để hệ thống đưa độ ẩm từ mức môi trường (~50-60%) lên mức bão hòa (>90%).
+
+**Chỉ số quan tâm:**
+    *   Tốc độ tăng (%/phút) trong 10 phút đầu.
+    *   Có hiện tượng "ngưng tụ" (đọng nước) trên thành hộp không?
+17h30 đến 19h30 ngày 19/1/2026 - Cảm biến sử dụng: BME280, thiết bị tham chiếu: Nhiệt ẩm kế điện tử, có dây trong hộp.
+
+Bài test 2:Bật chế độ giảm ẩm để kiểm tra khả năng giảm ẩm từ mức ổn định xuống mức thấp trong thời gian ngắn.
+**Mục tiêu:** Đo khả năng tách nước của hệ thống (Peltier lạnh). Kéo độ ẩm từ mức cao (>80%) xuống mức thấp nhất có thể (<40%).
+**Chỉ số quan tâm:**
+    *   Độ ẩm thấp nhất đạt được (Saturation floor).
+    *   Tốc độ giảm (%/phút).
+20h đến 20h30 ngày 19/1/2026 - Cảm biến sử dụng: BME280, thiết bị tham chiếu: Nhiệt ẩm kế điện tử, có dây trong hộp.
+
+Bài 3: Duy trì mức ẩm tiện nghi 
+**Mục tiêu:** Giữ độ ẩm ổn định tại mức phổ biến cho con người/thiết bị điện tử (40-60%)
+**Quy trình:** Chạy ổn định trong 2 tiếng.
+**Chỉ số quan tâm:**
+    *   Biên độ dao động: Ví dụ 2% là tốt.
+13pm đến 15pm ngày 20/1/2026 - Cảm biến sử dụng: BME280, thiết bị tham chiếu: Nhiệt ẩm kế điện tử, có dây trong hộp.
+
+
+Bài 4: Duy trì mức ẩm cao 
+**Mục tiêu:** Giữ ẩm cao (cho ứng dụng trồng nấm, ấp trứng...) mà không gây bão hòa nước.(65-80% với trứng ấp),(80-90% với nấm)
+
+**Chỉ số quan tâm:**
+    *   Hệ thống có bị quá độ lên 95-99% không?
+    *   Sự ổn định của cảm biến ở độ ẩm cao.
+
+
+Bài 5: Ổn định nhiệt độ không khí 
+*   **Mục tiêu:** Kiểm tra xem việc tăng/giảm ẩm có làm thay đổi nhiệt độ trong hộp quá nhiều không (Tác dụng phụ).
+*   **Cài đặt:** Chạy bài test tăng ẩm (Bài 1) hoặc giảm ẩm (Bài 2).
+*   **Chỉ số quan tâm:**
+    *   Vẽ đồ thị Nhiệt độ song song với Độ ẩm.
+    *   Đánh giá xem nhiệt độ có bị biến động mạnh không.
+
+Bài 6: Mở nắp hộp 
+**Mục tiêu:** Giả lập hành vi mở cửa tủ/hộp.
+**Thao tác:**
+    *   Tại phút 45: Mở nắp hộp hoàn toàn trong 1 khoảng thời gian.
+    *   Sau đó đóng lại.
+**Chỉ số quan tâm:**
+    *   Độ sụt giảm/tăng vọt của độ ẩm.
+    *   Thời gian hệ thống quay lại trạng thái cân bằng.
+
+Bài 7: Đáp ứng bước thay đổi liên tục 
+Mục tiêu: Kiểm tra thuật toán điều khiển. Hệ thống phản ứng thế nào khi người dùng thay đổi cài đặt liên tục thay vì chỉ giữ một mức cố định. 
+Quy trình:
+Phút 0 - 40: Cài đặt mức ẩm mục tiêu 50%.
+Phút 40 - 80: Đổi cài đặt lên mức 70%.
+Phút 80 - 120: Đổi cài đặt xuống mức 45%. Chỉ số quan tâm:
+
+Thời gian xác lập: Mất bao lâu để hệ thống đạt được mức setpoint mới?
+Độ vọt: Khi chuyển trạng thái, nó có bị vọt lên rồi mới tụt xuống không? 
+Độ giảm: Khi chuyển trạng thái , nó có bị tụt quá sâu xuống không?
+
+Bài 8: Kiểm tra độ kín và rò rỉ thụ động 
+Mục tiêu: Đánh giá chất lượng cơ khí của hộp thay vì đánh giá mạch điện. 
+Quy trình:
+Chạy hệ thống (hút ẩm hoặc tăng ẩm) để đưa độ ẩm trong hộp lệch xa so với môi trường 
+Tắt hoàn toàn cơ cấu chấp hành, chỉ để lại cảm biến hoạt động.
+Đo trong 2 tiếng xem độ ẩm "trôi" về mức môi trường nhanh hay chậm. Chỉ số quan tâm:
+- Tốc độ rò rỉ (%RH/phút)
+- Đồ thị: Đường cong tiệm cận về độ ẩm môi trường.
+
+Bài 9: Thử nghiệm có tải 
+Mục tiêu: Mô phỏng thực tế khi bảo quản đồ vật. 
+Một cái hộp rỗng hoạt động rất khác so với một cái hộp đang chứa vật thể có khả năng bay hơi.
+ Quy trình:
+- Đặt vào trong hộp một vật thể có độ ẩm.
+- Cài đặt hệ thống duy trì ở mức thấp.
+- Hệ thống sẽ phải hoạt động liên tục với lượng hơi nước bốc ra từ vật thể đó. 
+Chỉ số quan tâm:
+- Khả năng duy trì: Hệ thống có giữ được độ ẩm không ?
+- Tần suất hoạt động: Hệ thống có phải chạy 100% thời gian không?
+
+Bài 10: Kiểm tra quán tính hệ thống & Đáp ứng xung 
+Mục tiêu: Kiểm tra xem khi Ngắt điều khiển đột ngột, hệ thống sẽ trôi đi bao xa.
+Quy trình (Chia làm 2 pha trong 2 tiếng):
+Pha 1 (Quán tính tăng ẩm):
+- Để độ ẩm ổn định ở mức thấp.
+- Bật máy tạo ẩm trong đúng 5 hoặc 10 phút.
+- Tắt ngay lập tức.
+- Tiếp tục đo trong 30-45 phút tiếp theo để xem độ ẩm còn tự leo lên bao nhiêu % nữa rồi mới đi ngang hoặc giảm.
+Pha 2 (Quán tính giảm ẩm):
+- Sau khi hệ thống ổn định lại.
+- Bật máy hút ẩm trong đúng 10 phút.
+- Tắt ngay lập tức.
+- Tiếp tục đo để xem độ ẩm có tiếp tục tụt sâu thêm không.
+Chỉ số quan tâm:
+Độ vọt tự do (%RH): Độ ẩm bị vọt lố thêm bao nhiêu sau khi đã tắt điện.
+Thời gian trễ: Mất bao nhiêu giây từ lúc tắt điện đến lúc độ ẩm đạt đỉnh/đáy thực sự.
+
+
+A. Môi Trường & Hộp Test
+*   **Kích thước hộp (Dài x Rộng x Cao):** 30 x 30 x 30(cm), độ dày kính: 0.25 (cm)
+*   **Thể tích ước tính:** 27 (lít)
+*   **Vật liệu hộp:** Mica
+*   **Độ kín:** Có 3 lỗ để luồn dây linh kiện, kích thước: 2 lỗ đường kính 1cm, 1 lỗ đường kính 1.5cm
+
+B. Cảm Biến & Vị Trí
+*   **Tên cảm biến:** SHT35 (I2C) & DS18B20 (OneWire) & BME280 (I2C) & Nhiệt ẩm kế điện tử
+*   **Vị trí đặt cảm biến:**
+    * BME280: Ở giữa hộp bên phải
+    * Nhiệt ẩm kế điện tử: Ở đáy hộp giữa.
+    * Khác: ...........................................................
+*   **Khoảng cách từ cảm biến đến nguồn tạo ẩm/hút ẩm:
+      BME280: (cm)
+      Nhiệt ẩm kế điện tử: (cm)
+
+Độ ẩm điều chỉnh được: 99%-max, với hộp kín thì min có thể xuống thấp hơn độ ẩm môi trường 18% (tùy vào môi trường)
+Hiệu quả hệ thống: Từ mốc xx đến xx: trung bình xx giây/% độ ẩm
+Mỗi session 2 tiếng, 5s 1 mẫu, ghi chú hiện tượng (nếu có)
+
+
+Bài test 1: Kiểm tra hệ thống khi tăng ẩm và khả năng giữ độ ẩm ở mức cao
+17h30 đến 19h30 ngày 19/1/2026
+độ ẩm lúc 17h30 :63%, nhiệt độ lúc 17h30 :27.1 độ C
+Tham chiếu mỗi 5p 1 lần, 15p sẽ có 1 file lưu vào sd card.
+Các quyết định cũng sẽ được note vào đây.
+ 5h30: Tăng ẩm lên 90% (bão hòa).
+ 5h35:69% , 27.6 độ C
+ 5h40:80% , 28 độ C
+ 5h45:99%, 28.6 độ C
+ tắt hệ thống trong 15p để kiểm tra độ ổn định.
+ Hiện tượng, có nước đọng thành hạt ở nơi tạo ẩm
+ mặt kính dưới bám hơi nước, mặt kính 4 phía bám hơi nước, mặt trên có ít dấu hiệu bám hơi nước
+ Sau 3p không có hiện tượng gì khác biệt, độ ẩm vẫn giữ, có xu hướng tăng dần lên, đề nghị chạy giảm ẩm để tránh hỏng cảm biến.
+Sau khi bật hệ thống giảm ẩm, tham chiếu độ ẩm giảm 97% rồi tăng lại lên 99%, nhiệt độ 28.4 độ C
+ 5h50:99%, 28.4 độ C
+Bật chế độ giảm ẩm đến khi độ ẩm bão hòa, test chức năng của hệ thống
+Hệ thống bão hòa lúc 5h48, lúc 5h53 hệ thống bắt đầu giảm ẩm.
+ 5h55:96%, 28.3 độ C
+ 6h00:79%, 28.2 độ C
+ 6h05:70%, 28.3 độ C
+ 6h10:67%, 28.3 độ C
+ Bắt đầu gặp trạng thái nút cổ chai, độ ẩm lúc này sẽ giảm chậm hơn, do độ ẩm đã gần về mức môi trường, hệ thống vẫn hoạt động bình thường
+ tuy nhiên hiệu quả giảm ẩm không cao.
+ 6h15:65%, 28.4 độ C
+ 6h20:64%, 28.4 độ C
+ 6h25:64%, 28.5 độ C
+ hệ thống vẫn tiếp tục giảm ẩm, tuy nhiên hiệu quả không cao, độ ẩm giảm rất chậm mà thiết bị tham chiếu không thể đo được sự thay đổi
+ 6h30:63%, 28.5 độ C
+ Hệ thống sẽ dừng giảm ẩm khi quá tải hệ thống, khi đó hệ thống sẽ có xu hướng tăng ẩm trở lại để cân bằng độ ẩm trong hộp.
+ Tại 6h34, hệ thống bắt đầu tăng ẩm trở lại, dao động giữa 62.3% và 62.4%, theo dõi thêm 15p để biết xu hướng tiếp theo.
+ 6h35:63%, 28.5 độ C
+ tại 6h36, hệ thống nhảy k ổn định 1 mốc:3960681 AIR_LOG
+ tại 6h38, độ ẩm giảm xuống 62.2%, chứng tỏ hệ thống có thể giảm ẩm tiếp.
+ 6h40:63%, 28.5 độ C
+ 6h45:63%, 28.5 độ C
+ Block 5 không log được vào SD card.Viết log để điền lại vào csv sau
+ 6h50:62%, 28.5 độ C
+ 6h55:62%, 28.6 độ C
+ 7h00:62%, 28.6 độ C
+ Hệ thống giảm chậm, Quyết định tắt hệ thống để kiểm tra độ ổn định trong 30p cuối của session này
+ Khung thời gian: 5380681 AIR_LOG
+ Block 6 không lưu được, chuyển sang lưu tay.
+ 7h05:68%, 28.4 độ C
+ Thiết bị tham chiếu lệch so với cảm biến trong hộp, thiết bị có thể có vấn đề nhẹ.
+ Độ ẩm tăng dần lại
+ 7h10:69%, 28.3 độ C
+ 7h15:70%, 28.3 độ C
+ Độ ẩm cảm biến tăng dần, hiện đang 63.3%, Block 7 bị lỗi, tiếp tục log tay.
+ 7h20:71%, 28.1 độ C
+ 7h25:72%, 28.1 độ C
+ 7h30:72%, 28 độ C
+ Block 8 log lỗi, log tay.
+
+ Các tín hiệu đo được từ 5h30:
+I (29) boot: ESP-IDF v5.5.1 2nd stage bootloader
+I (29) boot: compile time Jan 16 2026 17:22:58
+I (29) boot: Multicore bootloader
+I (31) boot: chip revision: v3.1
+I (33) boot.esp32: SPI Speed      : 40MHz
+I (37) boot.esp32: SPI Mode       : DIO
+I (41) boot.esp32: SPI Flash Size : 2MB
+I (44) boot: Enabling RNG early entropy source...
+I (49) boot: Partition Table:
+I (51) boot: ## Label            Usage          Type ST Offset   Length
+I (58) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (64) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (71) boot:  2 factory          factory app      00 00 00010000 00100000
+I (77) boot: End of partition table
+I (81) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=0f240h ( 62016) map
+I (109) esp_image: segment 1: paddr=0001f268 vaddr=3ffb0000 size=00db0h (  3504) load
+I (111) esp_image: segment 2: paddr=00020020 vaddr=400d0020 size=2b9bch (178620) map
+I (174) esp_image: segment 3: paddr=0004b9e4 vaddr=3ffb0db0 size=01890h (  6288) load
+I (177) esp_image: segment 4: paddr=0004d27c vaddr=40080000 size=10b50h ( 68432) load
+I (205) esp_image: segment 5: paddr=0005ddd4 vaddr=50000000 size=00020h (    32) load
+I (213) boot: Loaded app from partition at offset 0x10000
+I (213) boot: Disabling RNG early entropy source...
+I (225) cpu_start: Multicore app
+I (233) cpu_start: Pro cpu start user code
+I (233) cpu_start: cpu freq: 160000000 Hz
+I (234) app_init: Application information:
+I (234) app_init: Project name:     airsense_v2
+I (238) app_init: App version:      1
+I (241) app_init: Compile time:     Jan 16 2026 17:22:33
+I (246) app_init: ELF file SHA256:  654cbde5a...
+I (251) app_init: ESP-IDF:          v5.5.1
+I (254) efuse_init: Min chip rev:     v0.0
+I (258) efuse_init: Max chip rev:     v3.99
+I (262) efuse_init: Chip rev:         v3.1
+--- Warning: Checksum mismatch between flashed and built applications. Checksum of built application is d8e86d824507ee697a3a05ddef2689a7f54a5becb0fff173b3bc277bd7123c01
+I (266) heap_init: Initializing. RAM available for dynamic allocation:
+I (272) heap_init: At 3FFAE6E0 len 00001920 (6 KiB): DRAM
+I (277) heap_init: At 3FFB6330 len 00029CD0 (167 KiB): DRAM
+I (283) heap_init: At 3FFE0440 len 00003AE0 (14 KiB): D/IRAM
+I (288) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
+I (294) heap_init: At 40090B50 len 0000F4B0 (61 KiB): IRAM
+W (300) spi_flash: Detected boya flash chip but using generic driver. For optimal functionality, enable `SPI_FLASH_SUPPORT_BOYA_CHIP` in menuconfig
+I (312) spi_flash: detected chip: generic
+I (315) spi_flash: flash io: dio
+W (318) spi_flash: Detected size(4096k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+W (331) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+I (341) main_task: Started on CPU0
+I (351) main_task: Calling app_main()
+I (351) APP: ===== AirSense app start =====
+I (351) SDCARD: Initializing SD card (SPI mode)...
+I (351) sdspi_transaction: cmd=52, R1 response: command not supported
+I (401) sdspi_transaction: cmd=5, R1 response: command not supported
+Name: SC16G
+Type: SDHC
+Speed: 20.00 MHz (limit: 20.00 MHz)
+Size: 15193MB
+CSD: ver=2, sector_size=512, capacity=31116288 read_bl_len=9
+SSR: bus_width=1
+I (441) SDCARD: SD card mounted at /sdcard
+I (451) PMS7003: Init done (UART=2 TX=17 RX=16)
+I (451) PMS7003: PMS7003 task started
+I (461) APP: PMS7003 started
+I (671) BME280_ENV: BME280 init OK (addr 0x76)
+I (671) BME280_ENV: BME280 task started
+I (671) APP: BME280 started
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (451) PMS7003: PMS7003 task started
+I (461) APP: PMS7003 started
+I (671) BME280_ENV: BME280 init OK (addr 0x76)
+I (671) BME280_ENV: BME280 task started
+I (671) APP: BME280 started
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (461) APP: PMS7003 started
+I (671) BME280_ENV: BME280 init OK (addr 0x76)
+I (671) BME280_ENV: BME280 task started
+I (671) APP: BME280 started
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (671) BME280_ENV: BME280 init OK (addr 0x76)
+I (671) BME280_ENV: BME280 task started
+I (671) APP: BME280 started
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (671) BME280_ENV: BME280 task started
+I (671) APP: BME280 started
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (671) SDS011: SDS011 init OK (UART1, TX=33, RX=32)
+I (671) SDS011: SDS011 task started
+I (671) APP: SDS011 started
+I (671) AIR_LOG: AirSense logger task started: sample every 5000 ms, 180 samples per block (~15 min)
+(3605681) AIR_LOG: === Start logging block #5 (duration ~15 min) ===
+I (3605681) AIR_LOG: t=3605382 ms | PMS: OK PM1=7 PM2.5=38 PM10=54 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.66hPa Alt=30.0m
+I (3610681) AIR_LOG: t=3610382 ms | PMS: OK PM1=7 PM2.5=39 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.73hPa Alt=29.4m
+I (3615681) AIR_LOG: t=3615382 ms | PMS: OK PM1=8 PM2.5=42 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.82hPa Alt=28.6m
+I (3620681) AIR_LOG: t=3620382 ms | PMS: OK PM1=7 PM2.5=32 PM10=42 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.66hPa Alt=30.0m
+I (3625681) AIR_LOG: t=3625382 ms | PMS: OK PM1=7 PM2.5=29 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.65hPa Alt=30.0m
+I (3630681) AIR_LOG: t=3630382 ms | PMS: OK PM1=9 PM2.5=30 PM10=46 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.60hPa Alt=30.4m
+I (3635681) AIR_LOG: t=3635382 ms | PMS: OK PM1=11 PM2.5=33 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.68hPa Alt=29.7m
+I (3640681) AIR_LOG: t=3640382 ms | PMS: OK PM1=12 PM2.5=35 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.71hPa Alt=29.5m
+I (3645681) AIR_LOG: t=3645382 ms | PMS: OK PM1=8 PM2.5=34 PM10=47 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.65hPa Alt=30.0m
+I (3650681) AIR_LOG: t=3650382 ms | PMS: OK PM1=7 PM2.5=33 PM10=48 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.66hPa Alt=30.0m
+I (3655681) AIR_LOG: t=3655382 ms | PMS: OK PM1=9 PM2.5=35 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.4% P=1009.69hPa Alt=29.7m
+I (3660681) AIR_LOG: t=3660382 ms | PMS: OK PM1=11 PM2.5=35 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.68hPa Alt=29.8m
+I (3665681) AIR_LOG: t=3665382 ms | PMS: OK PM1=13 PM2.5=34 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.4% P=1009.72hPa Alt=29.4m
+I (3670681) AIR_LOG: t=3670382 ms | PMS: OK PM1=15 PM2.5=39 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.4% P=1009.63hPa Alt=30.2m
+I (3675681) AIR_LOG: t=3675382 ms | PMS: OK PM1=12 PM2.5=33 PM10=49 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.66hPa Alt=30.0m
+I (3680681) AIR_LOG: t=3680382 ms | PMS: OK PM1=11 PM2.5=38 PM10=46 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.68hPa Alt=29.7m
+I (3685681) AIR_LOG: t=3685382 ms | PMS: OK PM1=10 PM2.5=42 PM10=54 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.61hPa Alt=30.3m
+I (3690681) AIR_LOG: t=3690382 ms | PMS: OK PM1=8 PM2.5=37 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.64hPa Alt=30.1m
+I (3695681) AIR_LOG: t=3695382 ms | PMS: OK PM1=8 PM2.5=38 PM10=49 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.8m
+I (3700681) AIR_LOG: t=3700382 ms | PMS: OK PM1=10 PM2.5=37 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.9m
+I (3705681) AIR_LOG: t=3705382 ms | PMS: OK PM1=7 PM2.5=35 PM10=47 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.66hPa Alt=30.0m
+I (3710681) AIR_LOG: t=3710382 ms | PMS: OK PM1=1 PM2.5=66 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.62hPa Alt=30.2m
+I (3715681) AIR_LOG: t=3715382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.61hPa Alt=30.3m
+I (3720681) AIR_LOG: t=3720382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.60hPa Alt=30.4m
+I (3725681) AIR_LOG: t=3725382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.9m
+I (3730681) AIR_LOG: t=3730382 ms | PMS: OK PM1=0 PM2.5=77 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.9m
+I (3735681) AIR_LOG: t=3735382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.74hPa Alt=29.3m
+I (3740681) AIR_LOG: t=3740382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.73hPa Alt=29.4m
+I (3745681) AIR_LOG: t=3745382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.72hPa Alt=29.4m
+I (3750681) AIR_LOG: t=3750382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.68hPa Alt=29.8m
+I (3755681) AIR_LOG: t=3755382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.9m
+I (3760681) AIR_LOG: t=3760382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.67hPa Alt=29.8m
+I (3765681) AIR_LOG: t=3765382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.69hPa Alt=29.7m
+I (3770681) AIR_LOG: t=3770382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.51C H=62.3% P=1009.79hPa Alt=28.8m
+I (3775681) AIR_LOG: t=3775382 ms | PMS: OK PM1=0 PM2.5=76 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.72hPa Alt=29.4m
+I (3780681) AIR_LOG: t=3780382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.70hPa Alt=29.6m
+I (3785681) AIR_LOG: t=3785382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.80hPa Alt=28.8m
+I (3790681) AIR_LOG: t=3790382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.3% P=1009.75hPa Alt=29.1m
+I (3795681) AIR_LOG: t=3795382 ms | PMS: OK PM1=0 PM2.5=82 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.69hPa Alt=29.7m
+I (3800681) AIR_LOG: t=3800382 ms | PMS: OK PM1=0 PM2.5=78 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.66hPa Alt=30.0m
+I (3805681) AIR_LOG: t=3805382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.71hPa Alt=29.5m
+I (3810681) AIR_LOG: t=3810382 ms | PMS: OK PM1=0 PM2.5=69 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.69hPa Alt=29.7m
+I (3815681) AIR_LOG: t=3815382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.76hPa Alt=29.1m
+I (3820681) AIR_LOG: t=3820382 ms | PMS: OK PM1=0 PM2.5=79 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.71hPa Alt=29.5m
+I (3825681) AIR_LOG: t=3825382 ms | PMS: OK PM1=0 PM2.5=87 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.69hPa Alt=29.7m
+I (3830681) AIR_LOG: t=3830382 ms | PMS: OK PM1=0 PM2.5=83 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.82hPa Alt=28.6m
+I (3835681) AIR_LOG: t=3835382 ms | PMS: OK PM1=0 PM2.5=80 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.75hPa Alt=29.2m
+I (3840681) AIR_LOG: t=3840382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.52C H=62.4% P=1009.81hPa Alt=28.7m
+I (3845681) AIR_LOG: t=3845382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.4% P=1009.70hPa Alt=29.6m
+I (3850681) AIR_LOG: t=3850382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.4% P=1009.68hPa Alt=29.7m
+I (3855681) AIR_LOG: t=3855382 ms | PMS: OK PM1=0 PM2.5=74 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.76hPa Alt=29.1m
+I (3860681) AIR_LOG: t=3860382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.4% P=1009.75hPa Alt=29.1m
+I (3865681) AIR_LOG: t=3865382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.77hPa Alt=29.0m
+I (3870681) AIR_LOG: t=3870382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.75hPa Alt=29.2m
+I (3875681) AIR_LOG: t=3875382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.53C H=62.3% P=1009.75hPa Alt=29.2m
+I (3880681) AIR_LOG: t=3880382 ms | PMS: OK PM1=0 PM2.5=73 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.70hPa Alt=29.6m
+I (3885681) AIR_LOG: t=3885382 ms | PMS: OK PM1=0 PM2.5=77 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.75hPa Alt=29.1m
+I (3890681) AIR_LOG: t=3890382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.73hPa Alt=29.4m
+I (3895681) AIR_LOG: t=3895382 ms | PMS: OK PM1=0 PM2.5=79 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.71hPa Alt=29.5m
+I (3900681) AIR_LOG: t=3900382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.76hPa Alt=29.1m
+I (3905681) AIR_LOG: t=3905382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.68hPa Alt=29.7m
+I (3910681) AIR_LOG: t=3910382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.72hPa Alt=29.5m
+I (3915681) AIR_LOG: t=3915382 ms | PMS: OK PM1=0 PM2.5=75 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.69hPa Alt=29.7m
+I (3920681) AIR_LOG: t=3920382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.72hPa Alt=29.5m
+I (3925681) AIR_LOG: t=3925382 ms | PMS: OK PM1=0 PM2.5=76 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.74hPa Alt=29.3m
+I (3930681) AIR_LOG: t=3930382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.54C H=62.3% P=1009.87hPa Alt=28.2m
+I (3935681) AIR_LOG: t=3935382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.83hPa Alt=28.5m
+I (3940681) AIR_LOG: t=3940382 ms | PMS: OK PM1=0 PM2.5=76 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.86hPa Alt=28.3m
+I (3945681) AIR_LOG: t=3945382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.95hPa Alt=27.5m
+I (3950681) AIR_LOG: t=3950382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.73hPa Alt=29.4m
+I (3955681) AIR_LOG: t=3955382 ms | PMS: OK PM1=0 PM2.5=81 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.78hPa Alt=28.9m
+I (3960681) AIR_LOG: t=3960382 ms | PMS: OK PM1=0 PM2.5=79 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.5% P=1009.75hPa Alt=29.2m
+I (3965681) AIR_LOG: t=3965382 ms | PMS: OK PM1=0 PM2.5=77 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.70hPa Alt=29.6m
+I (3970681) AIR_LOG: t=3970382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.1% P=1009.65hPa Alt=30.0m
+I (3975681) AIR_LOG: t=3975382 ms | PMS: OK PM1=0 PM2.5=75 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.73hPa Alt=29.3m
+I (3980681) AIR_LOG: t=3980382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.62hPa Alt=30.3m
+I (3985681) AIR_LOG: t=3985382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.70hPa Alt=29.6m
+I (3990681) AIR_LOG: t=3990382 ms | PMS: OK PM1=0 PM2.5=78 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.73hPa Alt=29.4m
+I (3995681) AIR_LOG: t=3995382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.3% P=1009.70hPa Alt=29.6m
+I (4000681) AIR_LOG: t=4000382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.65hPa Alt=30.0m
+I (4005681) AIR_LOG: t=4005382 ms | PMS: OK PM1=0 PM2.5=66 PM10=76 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.73hPa Alt=29.3m
+I (4010681) AIR_LOG: t=4010382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.65hPa Alt=30.0m
+I (4015681) AIR_LOG: t=4015382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.71hPa Alt=29.5m
+I (4020681) AIR_LOG: t=4020382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.67hPa Alt=29.8m
+I (4025681) AIR_LOG: t=4025382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.73hPa Alt=29.3m
+I (4030681) AIR_LOG: t=4030382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.3% P=1009.78hPa Alt=28.9m
+I (4035681) AIR_LOG: t=4035382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.3% P=1009.73hPa Alt=29.4m
+I (4040681) AIR_LOG: t=4040382 ms | PMS: OK PM1=0 PM2.5=77 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.2% P=1009.73hPa Alt=29.4m
+I (4045681) AIR_LOG: t=4045382 ms | PMS: OK PM1=0 PM2.5=82 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.3% P=1009.72hPa Alt=29.5m
+I (4050681) AIR_LOG: t=4050382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.73hPa Alt=29.3m
+I (4055681) AIR_LOG: t=4055382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.75hPa Alt=29.2m
+I (4060681) AIR_LOG: t=4060382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.55C H=62.2% P=1009.75hPa Alt=29.2m
+I (4065681) AIR_LOG: t=4065382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.74hPa Alt=29.2m
+I (4070681) AIR_LOG: t=4070382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.71hPa Alt=29.5m
+I (4075681) AIR_LOG: t=4075382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.77hPa Alt=29.0m
+I (4080681) AIR_LOG: t=4080382 ms | PMS: OK PM1=0 PM2.5=76 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.56C H=62.2% P=1009.71hPa Alt=29.5m
+I (4085681) AIR_LOG: t=4085382 ms | PMS: OK PM1=0 PM2.5=78 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.73hPa Alt=29.4m
+I (4090681) AIR_LOG: t=4090382 ms | PMS: OK PM1=0 PM2.5=75 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.75hPa Alt=29.2m
+I (4095681) AIR_LOG: t=4095382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.84hPa Alt=28.4m
+I (4100681) AIR_LOG: t=4100382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.75hPa Alt=29.2m
+I (4105681) AIR_LOG: t=4105382 ms | PMS: OK PM1=0 PM2.5=73 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.79hPa Alt=28.9m
+I (4110681) AIR_LOG: t=4110382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.2% P=1009.77hPa Alt=29.0m
+I (4115681) AIR_LOG: t=4115382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.2% P=1009.77hPa Alt=29.0m
+I (4120681) AIR_LOG: t=4120382 ms | PMS: OK PM1=0 PM2.5=82 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.79hPa Alt=28.9m
+I (4125681) AIR_LOG: t=4125382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.81hPa Alt=28.7m
+I (4130681) AIR_LOG: t=4130382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.76hPa Alt=29.1m
+I (4135681) AIR_LOG: t=4135382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=62.2% P=1009.79hPa Alt=28.9m
+I (4140681) AIR_LOG: t=4140382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.2% P=1009.80hPa Alt=28.8m
+I (4145681) AIR_LOG: t=4145382 ms | PMS: OK PM1=0 PM2.5=82 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.2% P=1009.79hPa Alt=28.9m
+I (4150681) AIR_LOG: t=4150382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.2% P=1009.74hPa Alt=29.2m
+I (4155681) AIR_LOG: t=4155382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.2% P=1009.80hPa Alt=28.7m
+I (4160681) AIR_LOG: t=4160382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.77hPa Alt=29.0m
+I (4165681) AIR_LOG: t=4165382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.72hPa Alt=29.4m
+I (4170681) AIR_LOG: t=4170382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.74hPa Alt=29.2m
+I (4175681) AIR_LOG: t=4175382 ms | PMS: OK PM1=0 PM2.5=72 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.77hPa Alt=29.0m
+I (4180681) AIR_LOG: t=4180382 ms | PMS: OK PM1=0 PM2.5=72 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.74hPa Alt=29.2m
+I (4185681) AIR_LOG: t=4185382 ms | PMS: OK PM1=0 PM2.5=71 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.78hPa Alt=28.9m
+I (4190681) AIR_LOG: t=4190382 ms | PMS: OK PM1=0 PM2.5=72 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.81hPa Alt=28.7m
+I (4195681) AIR_LOG: t=4195382 ms | PMS: OK PM1=0 PM2.5=70 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.81hPa Alt=28.7m
+I (4200681) AIR_LOG: t=4200382 ms | PMS: OK PM1=0 PM2.5=66 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.80hPa Alt=28.8m
+I (4205681) AIR_LOG: t=4205382 ms | PMS: OK PM1=0 PM2.5=63 PM10=75 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.72hPa Alt=29.4m
+I (4210681) AIR_LOG: t=4210382 ms | PMS: OK PM1=0 PM2.5=65 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.80hPa Alt=28.7m
+I (4215681) AIR_LOG: t=4215382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.70hPa Alt=29.6m
+I (4220681) AIR_LOG: t=4220382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.83hPa Alt=28.5m
+I (4225681) AIR_LOG: t=4225382 ms | PMS: OK PM1=0 PM2.5=76 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.77hPa Alt=29.0m
+I (4230681) AIR_LOG: t=4230382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.77hPa Alt=29.0m
+I (4235681) AIR_LOG: t=4235382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.72hPa Alt=29.4m
+I (4240681) AIR_LOG: t=4240382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.1% P=1009.70hPa Alt=29.6m
+I (4245681) AIR_LOG: t=4245382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.73hPa Alt=29.3m
+I (4250681) AIR_LOG: t=4250382 ms | PMS: OK PM1=0 PM2.5=76 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.77hPa Alt=29.0m
+I (4255681) AIR_LOG: t=4255382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.81hPa Alt=28.7m
+I (4260681) AIR_LOG: t=4260382 ms | PMS: OK PM1=0 PM2.5=69 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.76hPa Alt=29.1m
+I (4265681) AIR_LOG: t=4265382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.81hPa Alt=28.7m
+I (4270681) AIR_LOG: t=4270382 ms | PMS: OK PM1=0 PM2.5=70 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=62.0% P=1009.70hPa Alt=29.6m
+I (4275681) AIR_LOG: t=4275382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.1% P=1009.74hPa Alt=29.2m
+I (4280681) AIR_LOG: t=4280382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=62.0% P=1009.76hPa Alt=29.1m
+I (4285681) AIR_LOG: t=4285382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.74hPa Alt=29.2m
+I (4290681) AIR_LOG: t=4290382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.0% P=1009.75hPa Alt=29.2m
+I (4295681) AIR_LOG: t=4295382 ms | PMS: OK PM1=0 PM2.5=69 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.76hPa Alt=29.1m
+I (4300681) AIR_LOG: t=4300382 ms | PMS: OK PM1=0 PM2.5=64 PM10=75 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.79hPa Alt=28.9m
+I (4305681) AIR_LOG: t=4305382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.85hPa Alt=28.4m
+I (4310681) AIR_LOG: t=4310382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.76hPa Alt=29.1m
+I (4315681) AIR_LOG: t=4315382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=62.0% P=1009.86hPa Alt=28.3m
+I (4320681) AIR_LOG: t=4320382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.79hPa Alt=28.9m
+I (4325681) AIR_LOG: t=4325382 ms | PMS: OK PM1=0 PM2.5=74 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.71hPa Alt=29.5m
+I (4330681) AIR_LOG: t=4330382 ms | PMS: OK PM1=0 PM2.5=72 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.76hPa Alt=29.1m
+I (4335681) AIR_LOG: t=4335382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.79hPa Alt=28.8m
+I (4340681) AIR_LOG: t=4340382 ms | PMS: OK PM1=0 PM2.5=67 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.73hPa Alt=29.3m
+I (4345681) AIR_LOG: t=4345382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.9m
+I (4350681) AIR_LOG: t=4350382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.71hPa Alt=29.5m
+I (4355681) AIR_LOG: t=4355382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=62.0% P=1009.76hPa Alt=29.1m
+I (4360681) AIR_LOG: t=4360382 ms | PMS: OK PM1=0 PM2.5=73 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.74hPa Alt=29.2m
+I (4365681) AIR_LOG: t=4365382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.71hPa Alt=29.5m
+I (4370681) AIR_LOG: t=4370382 ms | PMS: OK PM1=0 PM2.5=71 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4375681) AIR_LOG: t=4375382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.76hPa Alt=29.1m
+I (4380681) AIR_LOG: t=4380382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.74hPa Alt=29.2m
+I (4385681) AIR_LOG: t=4385382 ms | PMS: OK PM1=0 PM2.5=73 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4390681) AIR_LOG: t=4390382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.72hPa Alt=29.5m
+I (4395681) AIR_LOG: t=4395382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4400681) AIR_LOG: t=4400382 ms | PMS: OK PM1=0 PM2.5=71 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.72hPa Alt=29.5m
+I (4405681) AIR_LOG: t=4405382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.71hPa Alt=29.5m
+I (4410681) AIR_LOG: t=4410382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.71hPa Alt=29.5m
+I (4415681) AIR_LOG: t=4415382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.79hPa Alt=28.9m
+I (4420681) AIR_LOG: t=4420382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4425681) AIR_LOG: t=4425382 ms | PMS: OK PM1=0 PM2.5=72 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.69hPa Alt=29.7m
+I (4430681) AIR_LOG: t=4430382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.73hPa Alt=29.3m
+I (4435681) AIR_LOG: t=4435382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.77hPa Alt=29.0m
+I (4440681) AIR_LOG: t=4440382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4445681) AIR_LOG: t=4445382 ms | PMS: OK PM1=0 PM2.5=71 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.76hPa Alt=29.1m
+I (4450681) AIR_LOG: t=4450382 ms | PMS: OK PM1=0 PM2.5=71 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.75hPa Alt=29.2m
+I (4455681) AIR_LOG: t=4455382 ms | PMS: OK PM1=0 PM2.5=71 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.71hPa Alt=29.6m
+I (4460681) AIR_LOG: t=4460382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.71hPa Alt=29.5m
+I (4465681) AIR_LOG: t=4465382 ms | PMS: OK PM1=0 PM2.5=70 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.8m
+I (4470681) AIR_LOG: t=4470382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.73hPa Alt=29.3m
+I (4475681) AIR_LOG: t=4475382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4480681) AIR_LOG: t=4480382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.80hPa Alt=28.7m
+I (4485681) AIR_LOG: t=4485382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.82hPa Alt=28.6m
+I (4490681) AIR_LOG: t=4490382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.9m
+I (4495681) AIR_LOG: t=4495382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4500681) AIR_LOG: t=4500382 ms | PMS: OK PM1=0 PM2.5=72 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.8m
+I (4500681) AIR_LOG: Block #5 collected (180 samples). Writing to SD...
+
+
+
+I (4505681) AIR_LOG: === Start logging block #6 (duration ~15 min) ===
+I (4505681) AIR_LOG: t=4505382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4510681) AIR_LOG: t=4510382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.86hPa Alt=28.3m
+I (4515681) AIR_LOG: t=4515382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.78hPa Alt=28.9m
+I (4520681) AIR_LOG: t=4520382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.79hPa Alt=28.9m
+I (4525681) AIR_LOG: t=4525382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.92hPa Alt=27.8m
+I (4530681) AIR_LOG: t=4530382 ms | PMS: OK PM1=0 PM2.5=82 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4535681) AIR_LOG: t=4535382 ms | PMS: OK PM1=0 PM2.5=85 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4505681) AIR_LOG: t=4505382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4510681) AIR_LOG: t=4510382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.86hPa Alt=28.3m
+I (4515681) AIR_LOG: t=4515382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.78hPa Alt=28.9m
+I (4520681) AIR_LOG: t=4520382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.79hPa Alt=28.9m
+I (4505681) AIR_LOG: t=4505382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4505681) AIR_LOG: t=4505382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4510681) AIR_LOG: t=4510382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.86hPa Alt=28.3m
+I (4515681) AIR_LOG: t=4515382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.78hPa Alt=28.9m
+I (4520681) AIR_LOG: t=4520382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.79hPa Alt=28.9m
+I (4515681) AIR_LOG: t=4515382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.78hPa Alt=28.9m
+I (4520681) AIR_LOG: t=4520382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.79hPa Alt=28.9m
+I (4525681) AIR_LOG: t=4525382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.92hPa Alt=27.8m
+I (4525681) AIR_LOG: t=4525382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.92hPa Alt=27.8m
+I (4530681) AIR_LOG: t=4530382 ms | PMS: OK PM1=0 PM2.5=82 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4535681) AIR_LOG: t=4535382 ms | PMS: OK PM1=0 PM2.5=85 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4540681) AIR_LOG: t=4540382 ms | PMS: OK PM1=0 PM2.5=85 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.86hPa Alt=28.3m
+I (4540681) AIR_LOG: t=4540382 ms | PMS: OK PM1=0 PM2.5=85 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.86hPa Alt=28.3m
+I (4545681) AIR_LOG: t=4545382 ms | PMS: OK PM1=0 PM2.5=84 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.57C H=61.9% P=1009.76hPa Alt=29.1m
+I (4550681) AIR_LOG: t=4550382 ms | PMS: OK PM1=0 PM2.5=82 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.92hPa Alt=27.8m
+I (4555681) AIR_LOG: t=4555382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.88hPa Alt=28.1m
+I (4555681) AIR_LOG: t=4555382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.88hPa Alt=28.1m
+I (4560681) AIR_LOG: t=4560382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.92hPa Alt=27.8m
+I (4565681) AIR_LOG: t=4565382 ms | PMS: OK PM1=0 PM2.5=85 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4570681) AIR_LOG: t=4570382 ms | PMS: OK PM1=0 PM2.5=90 PM10=103 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.75hPa Alt=29.2m
+I (4575681) AIR_LOG: t=4575382 ms | PMS: OK PM1=0 PM2.5=87 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.80hPa Alt=28.7m
+I (4580681) AIR_LOG: t=4580382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4585681) AIR_LOG: t=4585382 ms | PMS: OK PM1=0 PM2.5=85 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.94hPa Alt=27.6m
+I (4590681) AIR_LOG: t=4590382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.88hPa Alt=28.1m
+I (4595681) AIR_LOG: t=4595382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.9m
+I (4600681) AIR_LOG: t=4600382 ms | PMS: OK PM1=0 PM2.5=77 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.95hPa Alt=27.5m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4610681) AIR_LOG: t=4610382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4610681) AIR_LOG: t=4610382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4605681) AIR_LOG: t=4605382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.58C H=61.9% P=1009.77hPa Alt=29.0m
+I (4610681) AIR_LOG: t=4610382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4615681) AIR_LOG: t=4615382 ms | PMS: OK PM1=0 PM2.5=84 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.80hPa Alt=28.7m
+I (4620681) AIR_LOG: t=4620382 ms | PMS: OK PM1=0 PM2.5=86 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.79hPa Alt=28.8m
+I (4625681) AIR_LOG: t=4625382 ms | PMS: OK PM1=0 PM2.5=84 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.9% P=1009.77hPa Alt=29.0m
+I (4630681) AIR_LOG: t=4630382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.87hPa Alt=28.2m
+I (4635681) AIR_LOG: t=4635382 ms | PMS: OK PM1=0 PM2.5=82 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.79hPa Alt=28.9m
+I (4640681) AIR_LOG: t=4640382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.81hPa Alt=28.7m
+I (4645681) AIR_LOG: t=4645382 ms | PMS: OK PM1=0 PM2.5=82 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.95hPa Alt=27.5m
+I (4650681) AIR_LOG: t=4650382 ms | PMS: OK PM1=0 PM2.5=79 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.9% P=1009.89hPa Alt=28.0m
+I (4655681) AIR_LOG: t=4655382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.87hPa Alt=28.1m
+I (4660681) AIR_LOG: t=4660382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.59C H=61.8% P=1009.85hPa Alt=28.4m
+I (4665681) AIR_LOG: t=4665382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.82hPa Alt=28.6m
+I (4670681) AIR_LOG: t=4670382 ms | PMS: OK PM1=0 PM2.5=78 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.95hPa Alt=27.5m
+I (4675681) AIR_LOG: t=4675382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.9% P=1009.97hPa Alt=27.3m
+I (4680681) AIR_LOG: t=4680382 ms | PMS: OK PM1=0 PM2.5=93 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.90hPa Alt=27.9m
+I (4685681) AIR_LOG: t=4685382 ms | PMS: OK PM1=0 PM2.5=92 PM10=104 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1010.02hPa Alt=26.9m
+I (4690681) AIR_LOG: t=4690382 ms | PMS: OK PM1=0 PM2.5=87 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.95hPa Alt=27.5m
+I (4695681) AIR_LOG: t=4695382 ms | PMS: OK PM1=0 PM2.5=85 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.76hPa Alt=29.1m
+I (4700681) AIR_LOG: t=4700382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.81hPa Alt=28.7m
+I (4705681) AIR_LOG: t=4705382 ms | PMS: OK PM1=0 PM2.5=79 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.83hPa Alt=28.5m
+I (4710681) AIR_LOG: t=4710382 ms | PMS: OK PM1=0 PM2.5=84 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.87hPa Alt=28.1m
+I (4715681) AIR_LOG: t=4715382 ms | PMS: OK PM1=0 PM2.5=94 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.83hPa Alt=28.5m
+I (4720681) AIR_LOG: t=4720382 ms | PMS: OK PM1=0 PM2.5=91 PM10=103 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.86hPa Alt=28.3m
+I (4725681) AIR_LOG: t=4725382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.80hPa Alt=28.7m
+I (4730681) AIR_LOG: t=4730382 ms | PMS: OK PM1=0 PM2.5=75 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.87hPa Alt=28.2m
+I (4735681) AIR_LOG: t=4735382 ms | PMS: OK PM1=0 PM2.5=77 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.96hPa Alt=27.4m
+I (4740681) AIR_LOG: t=4740382 ms | PMS: OK PM1=0 PM2.5=88 PM10=103 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.9% P=1009.86hPa Alt=28.3m
+I (4745681) AIR_LOG: t=4745382 ms | PMS: OK PM1=0 PM2.5=92 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.83hPa Alt=28.5m
+I (4750681) AIR_LOG: t=4750382 ms | PMS: OK PM1=0 PM2.5=88 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.86hPa Alt=28.2m
+I (4755681) AIR_LOG: t=4755382 ms | PMS: OK PM1=0 PM2.5=85 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.60C H=61.8% P=1009.84hPa Alt=28.4m
+I (4760681) AIR_LOG: t=4760382 ms | PMS: OK PM1=0 PM2.5=81 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.97hPa Alt=27.3m
+I (4765681) AIR_LOG: t=4765382 ms | PMS: OK PM1=0 PM2.5=80 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.94hPa Alt=27.6m
+I (4770681) AIR_LOG: t=4770382 ms | PMS: OK PM1=0 PM2.5=81 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.84hPa Alt=28.4m
+I (4775681) AIR_LOG: t=4775382 ms | PMS: OK PM1=0 PM2.5=80 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.93hPa Alt=27.7m
+I (4780681) AIR_LOG: t=4780382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.94hPa Alt=27.6m
+I (4785681) AIR_LOG: t=4785382 ms | PMS: OK PM1=0 PM2.5=81 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.86hPa Alt=28.3m
+I (4790681) AIR_LOG: t=4790382 ms | PMS: OK PM1=0 PM2.5=83 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.88hPa Alt=28.1m
+I (4795681) AIR_LOG: t=4795382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.96hPa Alt=27.4m
+I (4800681) AIR_LOG: t=4800382 ms | PMS: OK PM1=0 PM2.5=83 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.87hPa Alt=28.1m
+I (4805681) AIR_LOG: t=4805382 ms | PMS: OK PM1=0 PM2.5=82 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.88hPa Alt=28.1m
+I (4810681) AIR_LOG: t=4810382 ms | PMS: OK PM1=0 PM2.5=85 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.61C H=61.8% P=1009.88hPa Alt=28.1m
+I (4815681) AIR_LOG: t=4815382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.86hPa Alt=28.2m
+I (4820681) AIR_LOG: t=4820382 ms | PMS: OK PM1=0 PM2.5=69 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.97hPa Alt=27.3m
+I (4825681) AIR_LOG: t=4825382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.90hPa Alt=27.9m
+I (4830681) AIR_LOG: t=4830382 ms | PMS: OK PM1=0 PM2.5=71 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.89hPa Alt=28.0m
+I (4835681) AIR_LOG: t=4835382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.90hPa Alt=27.9m
+I (4840681) AIR_LOG: t=4840382 ms | PMS: OK PM1=0 PM2.5=77 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.98hPa Alt=27.3m
+I (4845681) AIR_LOG: t=4845382 ms | PMS: OK PM1=0 PM2.5=74 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.7% P=1009.93hPa Alt=27.7m
+I (4850681) AIR_LOG: t=4850382 ms | PMS: OK PM1=0 PM2.5=79 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.98hPa Alt=27.3m
+I (4855681) AIR_LOG: t=4855382 ms | PMS: OK PM1=0 PM2.5=81 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.8% P=1010.10hPa Alt=26.2m
+I (4860681) AIR_LOG: t=4860382 ms | PMS: OK PM1=0 PM2.5=83 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1010.02hPa Alt=27.0m
+I (4865681) AIR_LOG: t=4865382 ms | PMS: OK PM1=0 PM2.5=84 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.94hPa Alt=27.6m
+I (4870681) AIR_LOG: t=4870382 ms | PMS: OK PM1=0 PM2.5=86 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.98hPa Alt=27.3m
+I (4875681) AIR_LOG: t=4875382 ms | PMS: OK PM1=0 PM2.5=88 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.7% P=1009.98hPa Alt=27.3m
+I (4880681) AIR_LOG: t=4880382 ms | PMS: OK PM1=0 PM2.5=86 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.8% P=1010.04hPa Alt=26.7m
+I (4885681) AIR_LOG: t=4885382 ms | PMS: OK PM1=0 PM2.5=86 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.62C H=61.8% P=1009.98hPa Alt=27.3m
+I (4890681) AIR_LOG: t=4890382 ms | PMS: OK PM1=0 PM2.5=85 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.88hPa Alt=28.1m
+I (4895681) AIR_LOG: t=4895382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.99hPa Alt=27.2m
+I (4900681) AIR_LOG: t=4900382 ms | PMS: OK PM1=0 PM2.5=86 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.99hPa Alt=27.2m
+I (4905681) AIR_LOG: t=4905382 ms | PMS: OK PM1=0 PM2.5=88 PM10=104 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.8% P=1010.02hPa Alt=27.0m
+I (4910681) AIR_LOG: t=4910382 ms | PMS: OK PM1=0 PM2.5=91 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.94hPa Alt=27.6m
+I (4915681) AIR_LOG: t=4915382 ms | PMS: OK PM1=0 PM2.5=89 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.99hPa Alt=27.2m
+I (4920681) AIR_LOG: t=4920382 ms | PMS: OK PM1=0 PM2.5=87 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1010.02hPa Alt=27.0m
+I (4925681) AIR_LOG: t=4925382 ms | PMS: OK PM1=0 PM2.5=89 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.86hPa Alt=28.2m
+I (4930681) AIR_LOG: t=4930382 ms | PMS: OK PM1=0 PM2.5=85 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.7% P=1009.94hPa Alt=27.6m
+I (4935681) AIR_LOG: t=4935382 ms | PMS: OK PM1=0 PM2.5=85 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1010.04hPa Alt=26.8m
+I (4940681) AIR_LOG: t=4940382 ms | PMS: OK PM1=0 PM2.5=85 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1010.01hPa Alt=27.0m
+I (4945681) AIR_LOG: t=4945382 ms | PMS: OK PM1=0 PM2.5=85 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1010.07hPa Alt=26.5m
+I (4950681) AIR_LOG: t=4950382 ms | PMS: OK PM1=0 PM2.5=86 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=61.8% P=1010.02hPa Alt=26.9m
+I (4955681) AIR_LOG: t=4955382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.8% P=1009.90hPa Alt=27.9m
+I (4960681) AIR_LOG: t=4960382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.97hPa Alt=27.3m
+I (4965681) AIR_LOG: t=4965382 ms | PMS: OK PM1=0 PM2.5=82 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1010.01hPa Alt=27.0m
+I (4970681) AIR_LOG: t=4970382 ms | PMS: OK PM1=0 PM2.5=81 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1010.09hPa Alt=26.3m
+I (4975681) AIR_LOG: t=4975382 ms | PMS: OK PM1=0 PM2.5=78 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1009.91hPa Alt=27.9m
+I (4980681) AIR_LOG: t=4980382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.92hPa Alt=27.8m
+I (4985681) AIR_LOG: t=4985382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1009.85hPa Alt=28.4m
+I (4990681) AIR_LOG: t=4990382 ms | PMS: OK PM1=0 PM2.5=72 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1009.93hPa Alt=27.6m
+I (4995681) AIR_LOG: t=4995382 ms | PMS: OK PM1=0 PM2.5=83 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=61.7% P=1009.96hPa Alt=27.4m
+I (5000681) AIR_LOG: t=5000382 ms | PMS: OK PM1=0 PM2.5=90 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.89hPa Alt=28.0m
+I (5005681) AIR_LOG: t=5005382 ms | PMS: OK PM1=0 PM2.5=86 PM10=102 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.79hPa Alt=28.8m
+I (5010681) AIR_LOG: t=5010382 ms | PMS: OK PM1=0 PM2.5=84 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.97hPa Alt=27.3m
+I (5015681) AIR_LOG: t=5015382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.92hPa Alt=27.7m
+I (5020681) AIR_LOG: t=5020382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.89hPa Alt=28.0m
+I (5025681) AIR_LOG: t=5025382 ms | PMS: OK PM1=0 PM2.5=75 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.91hPa Alt=27.9m
+I (5030681) AIR_LOG: t=5030382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1010.09hPa Alt=26.4m
+I (5035681) AIR_LOG: t=5035382 ms | PMS: OK PM1=0 PM2.5=72 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.90hPa Alt=27.9m
+I (5040681) AIR_LOG: t=5040382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.86hPa Alt=28.2m
+I (5045681) AIR_LOG: t=5045382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.95hPa Alt=27.5m
+I (5050681) AIR_LOG: t=5050382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.91hPa Alt=27.9m
+I (5055681) AIR_LOG: t=5055382 ms | PMS: OK PM1=0 PM2.5=72 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.92hPa Alt=27.8m
+I (5060681) AIR_LOG: t=5060382 ms | PMS: OK PM1=2 PM2.5=52 PM10=64 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1010.04hPa Alt=26.8m
+I (5065681) AIR_LOG: t=5065382 ms | PMS: OK PM1=8 PM2.5=30 PM10=40 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.98hPa Alt=27.3m
+I (5070681) AIR_LOG: t=5070382 ms | PMS: OK PM1=9 PM2.5=35 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.92hPa Alt=27.7m
+I (5075681) AIR_LOG: t=5075382 ms | PMS: OK PM1=12 PM2.5=36 PM10=51 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.92hPa Alt=27.8m
+I (5080681) AIR_LOG: t=5080382 ms | PMS: OK PM1=10 PM2.5=33 PM10=46 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.91hPa Alt=27.9m
+I (5085681) AIR_LOG: t=5085382 ms | PMS: OK PM1=5 PM2.5=26 PM10=43 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.93hPa Alt=27.7m
+I (5090681) AIR_LOG: t=5090382 ms | PMS: OK PM1=4 PM2.5=31 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.95hPa Alt=27.5m
+I (5095681) AIR_LOG: t=5095382 ms | PMS: OK PM1=5 PM2.5=30 PM10=47 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1010.16hPa Alt=25.8m
+I (5100681) AIR_LOG: t=5100382 ms | PMS: OK PM1=6 PM2.5=30 PM10=43 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.97hPa Alt=27.4m
+I (5105681) AIR_LOG: t=5105382 ms | PMS: OK PM1=6 PM2.5=30 PM10=43 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1009.94hPa Alt=27.6m
+I (5110681) AIR_LOG: t=5110382 ms | PMS: OK PM1=8 PM2.5=33 PM10=41 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1009.94hPa Alt=27.6m
+I (5115681) AIR_LOG: t=5115382 ms | PMS: OK PM1=8 PM2.5=35 PM10=44 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.7% P=1010.07hPa Alt=26.5m
+I (5120681) AIR_LOG: t=5120382 ms | PMS: OK PM1=5 PM2.5=29 PM10=37 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.08hPa Alt=26.4m
+I (5125681) AIR_LOG: t=5125382 ms | PMS: OK PM1=2 PM2.5=29 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.7% P=1010.00hPa Alt=27.1m
+I (5130681) AIR_LOG: t=5130382 ms | PMS: OK PM1=5 PM2.5=30 PM10=36 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.08hPa Alt=26.5m
+I (5135681) AIR_LOG: t=5135382 ms | PMS: OK PM1=8 PM2.5=33 PM10=43 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.04hPa Alt=26.8m
+I (5140681) AIR_LOG: t=5140382 ms | PMS: OK PM1=8 PM2.5=36 PM10=47 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=61.6% P=1010.06hPa Alt=26.6m
+I (5145681) AIR_LOG: t=5145382 ms | PMS: OK PM1=9 PM2.5=34 PM10=44 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1009.99hPa Alt=27.2m
+I (5150681) AIR_LOG: t=5150382 ms | PMS: OK PM1=9 PM2.5=34 PM10=42 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.04hPa Alt=26.8m
+I (5155681) AIR_LOG: t=5155382 ms | PMS: OK PM1=9 PM2.5=30 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.04hPa Alt=26.8m
+I (5160681) AIR_LOG: t=5160382 ms | PMS: OK PM1=9 PM2.5=26 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.09hPa Alt=26.3m
+I (5165681) AIR_LOG: t=5165382 ms | PMS: OK PM1=5 PM2.5=23 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.05hPa Alt=26.7m
+I (5170681) AIR_LOG: t=5170382 ms | PMS: OK PM1=2 PM2.5=24 PM10=38 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.08hPa Alt=26.5m
+I (5175681) AIR_LOG: t=5175382 ms | PMS: OK PM1=5 PM2.5=27 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.05hPa Alt=26.7m
+I (5180681) AIR_LOG: t=5180382 ms | PMS: OK PM1=8 PM2.5=29 PM10=37 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1009.97hPa Alt=27.4m
+I (5185681) AIR_LOG: t=5185382 ms | PMS: OK PM1=9 PM2.5=31 PM10=35 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1010.02hPa Alt=26.9m
+I (5190681) AIR_LOG: t=5190382 ms | PMS: OK PM1=11 PM2.5=30 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=61.6% P=1009.92hPa Alt=27.8m
+I (5195681) AIR_LOG: t=5195382 ms | PMS: OK PM1=9 PM2.5=29 PM10=31 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.14hPa Alt=25.9m
+I (5200681) AIR_LOG: t=5200382 ms | PMS: OK PM1=11 PM2.5=31 PM10=40 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.12hPa Alt=26.1m
+I (5205681) AIR_LOG: t=5205382 ms | PMS: OK PM1=9 PM2.5=34 PM10=45 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.07hPa Alt=26.5m
+I (5210681) AIR_LOG: t=5210382 ms | PMS: OK PM1=5 PM2.5=36 PM10=46 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.10hPa Alt=26.2m
+I (5215681) AIR_LOG: t=5215382 ms | PMS: OK PM1=4 PM2.5=27 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=61.6% P=1010.06hPa Alt=26.6m
+I (5220681) AIR_LOG: t=5220382 ms | PMS: OK PM1=4 PM2.5=28 PM10=36 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.02hPa Alt=26.9m
+I (5225681) AIR_LOG: t=5225382 ms | PMS: OK PM1=6 PM2.5=27 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1009.99hPa Alt=27.1m
+I (5230681) AIR_LOG: t=5230382 ms | PMS: OK PM1=11 PM2.5=30 PM10=41 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.07hPa Alt=26.5m
+I (5235681) AIR_LOG: t=5235382 ms | PMS: OK PM1=11 PM2.5=31 PM10=44 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.00hPa Alt=27.1m
+I (5240681) AIR_LOG: t=5240382 ms | PMS: OK PM1=5 PM2.5=31 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.10hPa Alt=26.2m
+I (5245681) AIR_LOG: t=5245382 ms | PMS: OK PM1=5 PM2.5=32 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.18hPa Alt=25.6m
+I (5250681) AIR_LOG: t=5250382 ms | PMS: OK PM1=8 PM2.5=29 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.17hPa Alt=25.7m
+I (5255681) AIR_LOG: t=5255382 ms | PMS: OK PM1=8 PM2.5=29 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.09hPa Alt=26.3m
+I (5260681) AIR_LOG: t=5260382 ms | PMS: OK PM1=9 PM2.5=29 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.01hPa Alt=27.0m
+I (5265681) AIR_LOG: t=5265382 ms | PMS: OK PM1=9 PM2.5=33 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1009.98hPa Alt=27.3m
+I (5270681) AIR_LOG: t=5270382 ms | PMS: OK PM1=9 PM2.5=31 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.13hPa Alt=26.0m
+I (5275681) AIR_LOG: t=5275382 ms | PMS: OK PM1=8 PM2.5=29 PM10=36 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.08hPa Alt=26.4m
+I (5280681) AIR_LOG: t=5280382 ms | PMS: OK PM1=8 PM2.5=27 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.10hPa Alt=26.2m
+I (5285681) AIR_LOG: t=5285382 ms | PMS: OK PM1=8 PM2.5=26 PM10=36 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.17hPa Alt=25.7m
+I (5290681) AIR_LOG: t=5290382 ms | PMS: OK PM1=7 PM2.5=29 PM10=39 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.08hPa Alt=26.4m
+I (5295681) AIR_LOG: t=5295382 ms | PMS: OK PM1=7 PM2.5=31 PM10=43 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.11hPa Alt=26.2m
+I (5300681) AIR_LOG: t=5300382 ms | PMS: OK PM1=5 PM2.5=27 PM10=42 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.10hPa Alt=26.2m
+I (5305681) AIR_LOG: t=5305382 ms | PMS: OK PM1=8 PM2.5=26 PM10=38 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=61.6% P=1010.10hPa Alt=26.2m
+I (5310681) AIR_LOG: t=5310382 ms | PMS: OK PM1=7 PM2.5=21 PM10=33 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.09hPa Alt=26.3m
+I (5315681) AIR_LOG: t=5315382 ms | PMS: OK PM1=4 PM2.5=21 PM10=30 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.02hPa Alt=26.9m
+I (5320681) AIR_LOG: t=5320382 ms | PMS: OK PM1=5 PM2.5=23 PM10=29 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=61.6% P=1010.16hPa Alt=25.7m
+I (5325681) AIR_LOG: t=5325382 ms | PMS: OK PM1=6 PM2.5=22 PM10=27 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.13hPa Alt=26.0m
+I (5330681) AIR_LOG: t=5330382 ms | PMS: OK PM1=11 PM2.5=23 PM10=30 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.15hPa Alt=25.9m
+I (5335681) AIR_LOG: t=5335382 ms | PMS: OK PM1=10 PM2.5=27 PM10=36 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.07hPa Alt=26.5m
+I (5340681) AIR_LOG: t=5340382 ms | PMS: OK PM1=2 PM2.5=30 PM10=37 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.01hPa Alt=27.0m
+I (5345681) AIR_LOG: t=5345382 ms | PMS: OK PM1=1 PM2.5=37 PM10=40 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.12hPa Alt=26.1m
+I (5350681) AIR_LOG: t=5350382 ms | PMS: OK PM1=1 PM2.5=38 PM10=41 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.13hPa Alt=26.0m
+I (5355681) AIR_LOG: t=5355382 ms | PMS: OK PM1=0 PM2.5=35 PM10=44 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.15hPa Alt=25.9m
+I (5360681) AIR_LOG: t=5360382 ms | PMS: OK PM1=0 PM2.5=39 PM10=48 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=61.5% P=1010.03hPa Alt=26.9m
+I (5365681) AIR_LOG: t=5365382 ms | PMS: OK PM1=0 PM2.5=41 PM10=48 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.6% P=1010.12hPa Alt=26.1m
+I (5370681) AIR_LOG: t=5370382 ms | PMS: OK PM1=0 PM2.5=39 PM10=50 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=61.5% P=1010.11hPa Alt=26.2m
+I (5375681) AIR_LOG: t=5375382 ms | PMS: OK PM1=0 PM2.5=44 PM10=57 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=61.5% P=1010.17hPa Alt=25.7m
+I (5380681) AIR_LOG: t=5380382 ms | PMS: OK PM1=0 PM2.5=45 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=61.5% P=1010.16hPa Alt=25.7m
+I (5385681) AIR_LOG: t=5385382 ms | PMS: OK PM1=0 PM2.5=41 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=61.5% P=1010.07hPa Alt=26.5m
+I (5390681) AIR_LOG: t=5390382 ms | PMS: OK PM1=0 PM2.5=43 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=61.5% P=1010.11hPa Alt=26.2m
+I (5395681) AIR_LOG: t=5395382 ms | PMS: OK PM1=0 PM2.5=46 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=61.5% P=1010.08hPa Alt=26.4m
+I (5400681) AIR_LOG: t=5400382 ms | PMS: OK PM1=0 PM2.5=47 PM10=59 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=61.5% P=1010.12hPa Alt=26.1m
+I (5400681) AIR_LOG: Block #6 collected (180 samples). Writing to SD...
+
+
+I (5405381) AIR_LOG: === Block #6 finished: 180 samples written to /sdcard/airlog.csv ===
+I (5405681) AIR_LOG: === Start logging block #7 (duration ~15 min) ===
+I (5405681) AIR_LOG: t=5405382 ms | PMS: OK PM1=0 PM2.5=47 PM10=57 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=61.6% P=1010.05hPa Alt=26.7m
+I (5410681) AIR_LOG: t=5410382 ms | PMS: OK PM1=0 PM2.5=47 PM10=56 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=61.6% P=1010.04hPa Alt=26.7m
+I (5415681) AIR_LOG: t=5415382 ms | PMS: OK PM1=0 PM2.5=50 PM10=62 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=61.6% P=1010.18hPa Alt=25.6m
+I (5420681) AIR_LOG: t=5420382 ms | PMS: OK PM1=0 PM2.5=50 PM10=61 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=61.7% P=1010.09hPa Alt=26.3m
+I (5425681) AIR_LOG: t=5425382 ms | PMS: OK PM1=0 PM2.5=50 PM10=61 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=61.7% P=1010.12hPa Alt=26.1m
+I (5430681) AIR_LOG: t=5430382 ms | PMS: OK PM1=0 PM2.5=50 PM10=64 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=61.7% P=1010.06hPa Alt=26.6m
+I (5435681) AIR_LOG: t=5435382 ms | PMS: OK PM1=0 PM2.5=51 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=61.7% P=1010.11hPa Alt=26.2m
+I (5440681) AIR_LOG: t=5440382 ms | PMS: OK PM1=0 PM2.5=50 PM10=65 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=61.7% P=1010.02hPa Alt=26.9m
+I (5445681) AIR_LOG: t=5445382 ms | PMS: OK PM1=0 PM2.5=49 PM10=67 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.82C H=61.7% P=1010.10hPa Alt=26.2m
+I (5450681) AIR_LOG: t=5450382 ms | PMS: OK PM1=0 PM2.5=50 PM10=66 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=61.7% P=1010.06hPa Alt=26.6m
+I (5455681) AIR_LOG: t=5455382 ms | PMS: OK PM1=0 PM2.5=49 PM10=64 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=61.6% P=1010.15hPa Alt=25.9m
+I (5460681) AIR_LOG: t=5460382 ms | PMS: OK PM1=0 PM2.5=51 PM10=63 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=61.6% P=1010.04hPa Alt=26.8m
+I (5465681) AIR_LOG: t=5465382 ms | PMS: OK PM1=0 PM2.5=60 PM10=73 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=61.5% P=1010.15hPa Alt=25.8m
+I (5470681) AIR_LOG: t=5470382 ms | PMS: OK PM1=0 PM2.5=66 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=61.5% P=1010.06hPa Alt=26.6m
+I (5475681) AIR_LOG: t=5475382 ms | PMS: OK PM1=0 PM2.5=65 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=61.5% P=1010.04hPa Alt=26.8m
+I (5480681) AIR_LOG: t=5480382 ms | PMS: OK PM1=0 PM2.5=58 PM10=68 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=61.5% P=1010.06hPa Alt=26.6m
+I (5485681) AIR_LOG: t=5485382 ms | PMS: OK PM1=0 PM2.5=58 PM10=72 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=61.5% P=1010.05hPa Alt=26.6m
+I (5490681) AIR_LOG: t=5490382 ms | PMS: OK PM1=0 PM2.5=64 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=61.5% P=1010.06hPa Alt=26.6m
+I (5495681) AIR_LOG: t=5495382 ms | PMS: OK PM1=0 PM2.5=73 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=61.5% P=1010.02hPa Alt=26.9m
+I (5500681) AIR_LOG: t=5500382 ms | PMS: OK PM1=0 PM2.5=77 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=61.5% P=1010.09hPa Alt=26.3m
+I (5505681) AIR_LOG: t=5505382 ms | PMS: OK PM1=0 PM2.5=75 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=61.5% P=1010.06hPa Alt=26.6m
+I (5510681) AIR_LOG: t=5510382 ms | PMS: OK PM1=0 PM2.5=71 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=61.5% P=1010.12hPa Alt=26.1m
+I (5515681) AIR_LOG: t=5515382 ms | PMS: OK PM1=0 PM2.5=67 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=61.5% P=1010.11hPa Alt=26.2m
+I (5520681) AIR_LOG: t=5520382 ms | PMS: OK PM1=0 PM2.5=65 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=61.5% P=1010.09hPa Alt=26.4m
+I (5525681) AIR_LOG: t=5525382 ms | PMS: OK PM1=0 PM2.5=67 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=61.5% P=1010.07hPa Alt=26.5m
+I (5530681) AIR_LOG: t=5530382 ms | PMS: OK PM1=0 PM2.5=68 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=61.5% P=1010.06hPa Alt=26.6m
+I (5535681) AIR_LOG: t=5535382 ms | PMS: OK PM1=0 PM2.5=68 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=61.5% P=1010.15hPa Alt=25.8m
+I (5540681) AIR_LOG: t=5540382 ms | PMS: OK PM1=0 PM2.5=77 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=61.5% P=1010.09hPa Alt=26.4m
+I (5545681) AIR_LOG: t=5545382 ms | PMS: OK PM1=0 PM2.5=82 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=61.5% P=1010.13hPa Alt=26.0m
+I (5550681) AIR_LOG: t=5550382 ms | PMS: OK PM1=0 PM2.5=82 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=61.5% P=1010.08hPa Alt=26.4m
+I (5555681) AIR_LOG: t=5555382 ms | PMS: OK PM1=0 PM2.5=77 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=61.5% P=1010.12hPa Alt=26.1m
+I (5560681) AIR_LOG: t=5560382 ms | PMS: OK PM1=0 PM2.5=73 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=61.5% P=1010.13hPa Alt=26.0m
+I (5565681) AIR_LOG: t=5565382 ms | PMS: OK PM1=0 PM2.5=70 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=61.5% P=1010.11hPa Alt=26.2m
+I (5570681) AIR_LOG: t=5570382 ms | PMS: OK PM1=0 PM2.5=71 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.5% P=1010.09hPa Alt=26.4m
+I (5575681) AIR_LOG: t=5575382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.5% P=1010.15hPa Alt=25.8m
+I (5580681) AIR_LOG: t=5580382 ms | PMS: OK PM1=0 PM2.5=77 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.5% P=1010.09hPa Alt=26.4m
+I (5585681) AIR_LOG: t=5585382 ms | PMS: OK PM1=0 PM2.5=75 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.09hPa Alt=26.4m
+I (5590681) AIR_LOG: t=5590382 ms | PMS: OK PM1=0 PM2.5=76 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.5% P=1010.09hPa Alt=26.4m
+I (5595681) AIR_LOG: t=5595382 ms | PMS: OK PM1=0 PM2.5=79 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.11hPa Alt=26.1m
+I (5600681) AIR_LOG: t=5600382 ms | PMS: OK PM1=0 PM2.5=84 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.12hPa Alt=26.1m
+I (5605681) AIR_LOG: t=5605382 ms | PMS: OK PM1=0 PM2.5=89 PM10=104 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.6% P=1010.13hPa Alt=26.0m
+I (5610681) AIR_LOG: t=5610382 ms | PMS: OK PM1=0 PM2.5=88 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.11hPa Alt=26.1m
+I (5615681) AIR_LOG: t=5615382 ms | PMS: OK PM1=0 PM2.5=75 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.10hPa Alt=26.3m
+I (5620681) AIR_LOG: t=5620382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.09hPa Alt=26.4m
+I (5625681) AIR_LOG: t=5625382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.15hPa Alt=25.8m
+I (5615681) AIR_LOG: t=5615382 ms | PMS: OK PM1=0 PM2.5=75 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.10hPa Alt=26.3m
+I (5620681) AIR_LOG: t=5620382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.09hPa Alt=26.4m
+I (5625681) AIR_LOG: t=5625382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.15hPa Alt=25.8m
+I (5620681) AIR_LOG: t=5620382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.09hPa Alt=26.4m
+I (5625681) AIR_LOG: t=5625382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.15hPa Alt=25.8m
+I (5625681) AIR_LOG: t=5625382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.6% P=1010.15hPa Alt=25.8m
+I (5630681) AIR_LOG: t=5630382 ms | PMS: OK PM1=0 PM2.5=79 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.6% P=1010.14hPa Alt=25.9m
+I (5635681) AIR_LOG: t=5635382 ms | PMS: OK PM1=0 PM2.5=95 PM10=106 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.6% P=1010.10hPa Alt=26.2m
+I (5640681) AIR_LOG: t=5640382 ms | PMS: OK PM1=0 PM2.5=91 PM10=105 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.6% P=1010.11hPa Alt=26.2m
+I (5645681) AIR_LOG: t=5645382 ms | PMS: OK PM1=0 PM2.5=80 PM10=97 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.6% P=1010.06hPa Alt=26.6m
+I (5650681) AIR_LOG: t=5650382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.08hPa Alt=26.4m
+I (5655681) AIR_LOG: t=5655382 ms | PMS: OK PM1=0 PM2.5=76 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.11hPa Alt=26.2m
+I (5660681) AIR_LOG: t=5660382 ms | PMS: OK PM1=0 PM2.5=85 PM10=100 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=61.7% P=1010.12hPa Alt=26.1m
+I (5665681) AIR_LOG: t=5665382 ms | PMS: OK PM1=0 PM2.5=83 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.22hPa Alt=25.3m
+I (5670681) AIR_LOG: t=5670382 ms | PMS: OK PM1=0 PM2.5=79 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.93C H=61.7% P=1010.23hPa Alt=25.2m
+I (5675681) AIR_LOG: t=5675382 ms | PMS: OK PM1=0 PM2.5=83 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.21hPa Alt=25.3m
+I (5680681) AIR_LOG: t=5680382 ms | PMS: OK PM1=0 PM2.5=81 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.22hPa Alt=25.3m
+I (5685681) AIR_LOG: t=5685382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.7% P=1010.19hPa Alt=25.5m
+I (5690681) AIR_LOG: t=5690382 ms | PMS: OK PM1=0 PM2.5=75 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.94C H=61.8% P=1010.14hPa Alt=25.9m
+I (5695681) AIR_LOG: t=5695382 ms | PMS: OK PM1=0 PM2.5=74 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.93C H=61.8% P=1010.12hPa Alt=26.1m
+I (5700681) AIR_LOG: t=5700382 ms | PMS: OK PM1=0 PM2.5=77 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.8% P=1010.14hPa Alt=25.9m
+I (5705681) AIR_LOG: t=5705382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.8% P=1010.11hPa Alt=26.2m
+I (5710681) AIR_LOG: t=5710382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.8% P=1010.09hPa Alt=26.4m
+I (5715681) AIR_LOG: t=5715382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.8% P=1010.17hPa Alt=25.7m
+I (5720681) AIR_LOG: t=5720382 ms | PMS: OK PM1=0 PM2.5=79 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.93C H=61.8% P=1010.09hPa Alt=26.3m
+I (5725681) AIR_LOG: t=5725382 ms | PMS: OK PM1=0 PM2.5=85 PM10=101 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.18hPa Alt=25.6m
+I (5730681) AIR_LOG: t=5730382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.16hPa Alt=25.8m
+I (5735681) AIR_LOG: t=5735382 ms | PMS: OK PM1=0 PM2.5=77 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.94C H=61.9% P=1010.23hPa Alt=25.2m
+I (5740681) AIR_LOG: t=5740382 ms | PMS: OK PM1=0 PM2.5=74 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.09hPa Alt=26.4m
+I (5745681) AIR_LOG: t=5745382 ms | PMS: OK PM1=0 PM2.5=72 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.19hPa Alt=25.5m
+I (5750681) AIR_LOG: t=5750382 ms | PMS: OK PM1=0 PM2.5=73 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.13hPa Alt=26.0m
+I (5755681) AIR_LOG: t=5755382 ms | PMS: OK PM1=0 PM2.5=76 PM10=92 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.17hPa Alt=25.7m
+I (5760681) AIR_LOG: t=5760382 ms | PMS: OK PM1=0 PM2.5=79 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=61.9% P=1010.17hPa Alt=25.7m
+I (5765681) AIR_LOG: t=5765382 ms | PMS: OK PM1=0 PM2.5=76 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.19hPa Alt=25.5m
+I (5770681) AIR_LOG: t=5770382 ms | PMS: OK PM1=0 PM2.5=72 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.17hPa Alt=25.7m
+I (5775681) AIR_LOG: t=5775382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.17hPa Alt=25.7m
+I (5780681) AIR_LOG: t=5780382 ms | PMS: OK PM1=0 PM2.5=66 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.19hPa Alt=25.5m
+I (5785681) AIR_LOG: t=5785382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.16hPa Alt=25.8m
+I (5790681) AIR_LOG: t=5790382 ms | PMS: OK PM1=0 PM2.5=69 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.0% P=1010.12hPa Alt=26.1m
+I (5795681) AIR_LOG: t=5795382 ms | PMS: OK PM1=0 PM2.5=70 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.1% P=1010.15hPa Alt=25.8m
+I (5800681) AIR_LOG: t=5800382 ms | PMS: OK PM1=0 PM2.5=70 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.0% P=1010.22hPa Alt=25.3m
+I (5805681) AIR_LOG: t=5805382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.1% P=1010.17hPa Alt=25.7m
+I (5810681) AIR_LOG: t=5810382 ms | PMS: OK PM1=0 PM2.5=67 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.1% P=1010.18hPa Alt=25.6m
+I (5815681) AIR_LOG: t=5815382 ms | PMS: OK PM1=0 PM2.5=66 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.1% P=1010.20hPa Alt=25.4m
+I (5820681) AIR_LOG: t=5820382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.1% P=1010.18hPa Alt=25.6m
+I (5825681) AIR_LOG: t=5825382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.1% P=1010.19hPa Alt=25.5m
+I (5830681) AIR_LOG: t=5830382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.1% P=1010.16hPa Alt=25.8m
+I (5835681) AIR_LOG: t=5835382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.2% P=1010.19hPa Alt=25.5m
+I (5840681) AIR_LOG: t=5840382 ms | PMS: OK PM1=0 PM2.5=66 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.2% P=1010.18hPa Alt=25.6m
+I (5845681) AIR_LOG: t=5845382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.2% P=1010.23hPa Alt=25.2m
+I (5850681) AIR_LOG: t=5850382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.2% P=1010.26hPa Alt=24.9m
+I (5855681) AIR_LOG: t=5855382 ms | PMS: OK PM1=0 PM2.5=75 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.2% P=1010.18hPa Alt=25.6m
+I (5860681) AIR_LOG: t=5860382 ms | PMS: OK PM1=0 PM2.5=77 PM10=93 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.2% P=1010.18hPa Alt=25.6m
+I (5865681) AIR_LOG: t=5865382 ms | PMS: OK PM1=0 PM2.5=82 PM10=98 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.2% P=1010.24hPa Alt=25.1m
+I (5870681) AIR_LOG: t=5870382 ms | PMS: OK PM1=0 PM2.5=79 PM10=96 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.2% P=1010.23hPa Alt=25.2m
+I (5875681) AIR_LOG: t=5875382 ms | PMS: OK PM1=0 PM2.5=75 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.5% P=1010.17hPa Alt=25.7m
+I (5880681) AIR_LOG: t=5880382 ms | PMS: OK PM1=0 PM2.5=73 PM10=87 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.3% P=1010.23hPa Alt=25.2m
+I (5885681) AIR_LOG: t=5885382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.3% P=1010.22hPa Alt=25.3m
+I (5890681) AIR_LOG: t=5890382 ms | PMS: OK PM1=0 PM2.5=72 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.3% P=1010.25hPa Alt=25.0m
+I (5895681) AIR_LOG: t=5895382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.3% P=1010.20hPa Alt=25.4m
+I (5900681) AIR_LOG: t=5900382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.3% P=1010.26hPa Alt=24.9m
+I (5905681) AIR_LOG: t=5905382 ms | PMS: OK PM1=0 PM2.5=70 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.3% P=1010.20hPa Alt=25.4m
+I (5910681) AIR_LOG: t=5910382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.4% P=1010.17hPa Alt=25.7m
+I (5915681) AIR_LOG: t=5915382 ms | PMS: OK PM1=0 PM2.5=71 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.92C H=62.4% P=1010.13hPa Alt=26.0m
+I (5920681) AIR_LOG: t=5920382 ms | PMS: OK PM1=0 PM2.5=75 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.4% P=1010.15hPa Alt=25.8m
+I (5925681) AIR_LOG: t=5925382 ms | PMS: OK PM1=0 PM2.5=74 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.4% P=1010.17hPa Alt=25.7m
+I (5930681) AIR_LOG: t=5930382 ms | PMS: OK PM1=0 PM2.5=72 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.4% P=1010.23hPa Alt=25.2m
+I (5935681) AIR_LOG: t=5935382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.4% P=1010.15hPa Alt=25.8m
+I (5940681) AIR_LOG: t=5940382 ms | PMS: OK PM1=0 PM2.5=69 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.5% P=1010.19hPa Alt=25.5m
+I (5945681) AIR_LOG: t=5945382 ms | PMS: OK PM1=0 PM2.5=71 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.5% P=1010.20hPa Alt=25.4m
+I (5950681) AIR_LOG: t=5950382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.5% P=1010.17hPa Alt=25.7m
+I (5955681) AIR_LOG: t=5955382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.5% P=1010.22hPa Alt=25.3m
+I (5960681) AIR_LOG: t=5960382 ms | PMS: OK PM1=0 PM2.5=67 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.5% P=1010.17hPa Alt=25.7m
+I (5965681) AIR_LOG: t=5965382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.5% P=1010.24hPa Alt=25.1m
+I (5970681) AIR_LOG: t=5970382 ms | PMS: OK PM1=0 PM2.5=68 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.6% P=1010.16hPa Alt=25.8m
+I (5975681) AIR_LOG: t=5975382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.6% P=1010.27hPa Alt=24.9m
+I (5980681) AIR_LOG: t=5980382 ms | PMS: OK PM1=0 PM2.5=70 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.6% P=1010.20hPa Alt=25.4m
+I (5985681) AIR_LOG: t=5985382 ms | PMS: OK PM1=0 PM2.5=69 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.6% P=1010.24hPa Alt=25.1m
+I (5990681) AIR_LOG: t=5990382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.6% P=1010.20hPa Alt=25.4m
+I (5995681) AIR_LOG: t=5995382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.6% P=1010.20hPa Alt=25.4m
+I (6000681) AIR_LOG: t=6000382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.7% P=1010.18hPa Alt=25.6m
+I (6005681) AIR_LOG: t=6005382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.91C H=62.7% P=1010.27hPa Alt=24.8m
+I (6010681) AIR_LOG: t=6010382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.7% P=1010.19hPa Alt=25.5m
+I (6015681) AIR_LOG: t=6015382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.7% P=1010.27hPa Alt=24.9m
+I (6020681) AIR_LOG: t=6020382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.7% P=1010.30hPa Alt=24.6m
+I (6025681) AIR_LOG: t=6025382 ms | PMS: OK PM1=0 PM2.5=69 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.90C H=62.7% P=1010.20hPa Alt=25.4m
+I (6030681) AIR_LOG: t=6030382 ms | PMS: OK PM1=0 PM2.5=67 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.8% P=1010.24hPa Alt=25.1m
+I (6035681) AIR_LOG: t=6035382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.8% P=1010.29hPa Alt=24.6m
+I (6040681) AIR_LOG: t=6040382 ms | PMS: OK PM1=0 PM2.5=67 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.8% P=1010.36hPa Alt=24.1m
+I (6045681) AIR_LOG: t=6045382 ms | PMS: OK PM1=0 PM2.5=68 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.8% P=1010.28hPa Alt=24.7m
+I (6050681) AIR_LOG: t=6050382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.8% P=1010.24hPa Alt=25.1m
+I (6055681) AIR_LOG: t=6055382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.8% P=1010.19hPa Alt=25.5m
+I (6060681) AIR_LOG: t=6060382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.8% P=1010.14hPa Alt=25.9m
+I (6065681) AIR_LOG: t=6065382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.8% P=1010.23hPa Alt=25.2m
+I (6070681) AIR_LOG: t=6070382 ms | PMS: OK PM1=0 PM2.5=67 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.8% P=1010.22hPa Alt=25.2m
+I (6075681) AIR_LOG: t=6075382 ms | PMS: OK PM1=0 PM2.5=66 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.8% P=1010.18hPa Alt=25.6m
+I (6080681) AIR_LOG: t=6080382 ms | PMS: OK PM1=0 PM2.5=66 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=62.8% P=1010.19hPa Alt=25.5m
+I (6085681) AIR_LOG: t=6085382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.89C H=62.9% P=1010.27hPa Alt=24.9m
+I (6090681) AIR_LOG: t=6090382 ms | PMS: OK PM1=0 PM2.5=67 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=62.9% P=1010.18hPa Alt=25.6m
+I (6095681) AIR_LOG: t=6095382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=62.9% P=1010.21hPa Alt=25.3m
+I (6100681) AIR_LOG: t=6100382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.88C H=62.9% P=1010.22hPa Alt=25.2m
+I (6105681) AIR_LOG: t=6105382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=62.9% P=1010.26hPa Alt=24.9m
+I (6110681) AIR_LOG: t=6110382 ms | PMS: OK PM1=0 PM2.5=73 PM10=89 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=62.9% P=1010.18hPa Alt=25.6m
+I (6115681) AIR_LOG: t=6115382 ms | PMS: OK PM1=0 PM2.5=80 PM10=99 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=63.0% P=1010.23hPa Alt=25.2m
+I (6120681) AIR_LOG: t=6120382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=63.0% P=1010.32hPa Alt=24.4m
+I (6125681) AIR_LOG: t=6125382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.0% P=1010.25hPa Alt=25.0m
+I (6130681) AIR_LOG: t=6130382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=63.0% P=1010.24hPa Alt=25.1m
+I (6135681) AIR_LOG: t=6135382 ms | PMS: OK PM1=0 PM2.5=66 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=63.0% P=1010.27hPa Alt=24.9m
+I (6140681) AIR_LOG: t=6140382 ms | PMS: OK PM1=0 PM2.5=68 PM10=82 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.87C H=63.0% P=1010.29hPa Alt=24.6m
+I (6145681) AIR_LOG: t=6145382 ms | PMS: OK PM1=0 PM2.5=67 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.0% P=1010.25hPa Alt=25.0m
+I (6150681) AIR_LOG: t=6150382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.0% P=1010.25hPa Alt=25.0m
+I (6155681) AIR_LOG: t=6155382 ms | PMS: OK PM1=0 PM2.5=67 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.1% P=1010.21hPa Alt=25.3m
+I (6160681) AIR_LOG: t=6160382 ms | PMS: OK PM1=0 PM2.5=67 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.1% P=1010.21hPa Alt=25.4m
+I (6165681) AIR_LOG: t=6165382 ms | PMS: OK PM1=0 PM2.5=66 PM10=77 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.3% P=1010.30hPa Alt=24.6m
+I (6170681) AIR_LOG: t=6170382 ms | PMS: OK PM1=0 PM2.5=64 PM10=77 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.1% P=1010.29hPa Alt=24.7m
+I (6175681) AIR_LOG: t=6175382 ms | PMS: OK PM1=0 PM2.5=66 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.1% P=1010.23hPa Alt=25.1m
+I (6180681) AIR_LOG: t=6180382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.2% P=1010.31hPa Alt=24.5m
+I (6185681) AIR_LOG: t=6185382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.1% P=1010.26hPa Alt=24.9m
+I (6190681) AIR_LOG: t=6190382 ms | PMS: OK PM1=0 PM2.5=70 PM10=86 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.86C H=63.1% P=1010.30hPa Alt=24.6m
+I (6195681) AIR_LOG: t=6195382 ms | PMS: OK PM1=0 PM2.5=70 PM10=85 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.1% P=1010.28hPa Alt=24.8m
+I (6200681) AIR_LOG: t=6200382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.1% P=1010.19hPa Alt=25.5m
+I (6205681) AIR_LOG: t=6205382 ms | PMS: OK PM1=0 PM2.5=73 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.1% P=1010.22hPa Alt=25.3m
+I (6210681) AIR_LOG: t=6210382 ms | PMS: OK PM1=0 PM2.5=78 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.1% P=1010.21hPa Alt=25.4m
+I (6215681) AIR_LOG: t=6215382 ms | PMS: OK PM1=0 PM2.5=77 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.1% P=1010.26hPa Alt=24.9m
+I (6220681) AIR_LOG: t=6220382 ms | PMS: OK PM1=0 PM2.5=73 PM10=88 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.85C H=63.2% P=1010.36hPa Alt=24.1m
+I (6225681) AIR_LOG: t=6225382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.1% P=1010.23hPa Alt=25.1m
+I (6230681) AIR_LOG: t=6230382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.2% P=1010.30hPa Alt=24.6m
+I (6235681) AIR_LOG: t=6235382 ms | PMS: OK PM1=0 PM2.5=66 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=63.2% P=1010.25hPa Alt=25.0m
+I (6240681) AIR_LOG: t=6240382 ms | PMS: OK PM1=0 PM2.5=69 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.2% P=1010.37hPa Alt=24.0m
+I (6245681) AIR_LOG: t=6245382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=63.3% P=1010.36hPa Alt=24.1m
+I (6250681) AIR_LOG: t=6250382 ms | PMS: OK PM1=0 PM2.5=68 PM10=81 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.84C H=63.2% P=1010.42hPa Alt=23.6m
+I (6255681) AIR_LOG: t=6255382 ms | PMS: OK PM1=0 PM2.5=70 PM10=84 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.83C H=63.2% P=1010.39hPa Alt=23.9m
+I (6260681) AIR_LOG: t=6260382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.82C H=63.2% P=1010.34hPa Alt=24.2m
+I (6265681) AIR_LOG: t=6265382 ms | PMS: OK PM1=0 PM2.5=77 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.2% P=1010.39hPa Alt=23.9m
+I (6270681) AIR_LOG: t=6270382 ms | PMS: OK PM1=0 PM2.5=74 PM10=90 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.82C H=63.2% P=1010.40hPa Alt=23.8m
+I (6275681) AIR_LOG: t=6275382 ms | PMS: OK PM1=0 PM2.5=78 PM10=94 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.2% P=1010.33hPa Alt=24.3m
+I (6280681) AIR_LOG: t=6280382 ms | PMS: OK PM1=0 PM2.5=79 PM10=95 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.3% P=1010.36hPa Alt=24.1m
+I (6285681) AIR_LOG: t=6285382 ms | PMS: OK PM1=0 PM2.5=74 PM10=91 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.3% P=1010.38hPa Alt=23.9m
+I (6290681) AIR_LOG: t=6290382 ms | PMS: OK PM1=0 PM2.5=68 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.3% P=1010.35hPa Alt=24.2m
+I (6295681) AIR_LOG: t=6295382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.81C H=63.3% P=1010.38hPa Alt=23.9m
+I (6300681) AIR_LOG: t=6300382 ms | PMS: OK PM1=0 PM2.5=65 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.3% P=1010.32hPa Alt=24.5m
+I (6300681) AIR_LOG: Block #7 collected (180 samples). Writing to SD...
+
+
+
+I (6305381) AIR_LOG: === Block #7 finished: 180 samples written to /sdcard/airlog.csv ===
+I (6305681) AIR_LOG: === Start logging block #8 (duration ~15 min) ===
+I (6305681) AIR_LOG: t=6305382 ms | PMS: OK PM1=0 PM2.5=67 PM10=80 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.3% P=1010.48hPa Alt=23.1m
+I (6310681) AIR_LOG: t=6310382 ms | PMS: OK PM1=0 PM2.5=69 PM10=83 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.3% P=1010.42hPa Alt=23.6m
+I (6315681) AIR_LOG: t=6315382 ms | PMS: OK PM1=0 PM2.5=58 PM10=66 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.39hPa Alt=23.9m
+I (6320681) AIR_LOG: t=6320382 ms | PMS: OK PM1=0 PM2.5=8 PM10=8 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.32hPa Alt=24.5m
+I (6325681) AIR_LOG: t=6325382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.4% P=1010.35hPa Alt=24.2m
+I (6330681) AIR_LOG: t=6330382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.37hPa Alt=24.0m
+I (6335681) AIR_LOG: t=6335382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.40hPa Alt=23.8m
+I (6340681) AIR_LOG: t=6340382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.42hPa Alt=23.6m
+I (6345681) AIR_LOG: t=6345382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.4% P=1010.41hPa Alt=23.7m
+I (6350681) AIR_LOG: t=6350382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.4% P=1010.33hPa Alt=24.4m
+I (6355681) AIR_LOG: t=6355382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.4% P=1010.39hPa Alt=23.9m
+I (6360681) AIR_LOG: t=6360382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.80C H=63.5% P=1010.36hPa Alt=24.1m
+I (6365681) AIR_LOG: t=6365382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.4% P=1010.35hPa Alt=24.2m
+I (6370681) AIR_LOG: t=6370382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.5% P=1010.30hPa Alt=24.6m
+I (6375681) AIR_LOG: t=6375382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.5% P=1010.34hPa Alt=24.3m
+I (6380681) AIR_LOG: t=6380382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.5% P=1010.37hPa Alt=24.0m
+I (6385681) AIR_LOG: t=6385382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.5% P=1010.29hPa Alt=24.7m
+I (6390681) AIR_LOG: t=6390382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.79C H=63.5% P=1010.40hPa Alt=23.8m
+I (6395681) AIR_LOG: t=6395382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.6% P=1010.34hPa Alt=24.3m
+I (6400681) AIR_LOG: t=6400382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.6% P=1010.26hPa Alt=25.0m
+I (6405681) AIR_LOG: t=6405382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.6% P=1010.36hPa Alt=24.1m
+I (6410681) AIR_LOG: t=6410382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.6% P=1010.29hPa Alt=24.7m
+I (6415681) AIR_LOG: t=6415382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.6% P=1010.37hPa Alt=24.0m
+I (6420681) AIR_LOG: t=6420382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.7% P=1010.31hPa Alt=24.5m
+I (6425681) AIR_LOG: t=6425382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.78C H=63.6% P=1010.35hPa Alt=24.1m
+I (6430681) AIR_LOG: t=6430382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.6% P=1010.29hPa Alt=24.7m
+I (6435681) AIR_LOG: t=6435382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.7% P=1010.31hPa Alt=24.5m
+I (6440681) AIR_LOG: t=6440382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.7% P=1010.36hPa Alt=24.1m
+I (6445681) AIR_LOG: t=6445382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.33hPa Alt=24.4m
+I (6450681) AIR_LOG: t=6450382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.7% P=1010.34hPa Alt=24.3m
+I (6455681) AIR_LOG: t=6455382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.7% P=1010.34hPa Alt=24.2m
+I (6460681) AIR_LOG: t=6460382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.30hPa Alt=24.6m
+I (6465681) AIR_LOG: t=6465382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.77C H=63.7% P=1010.34hPa Alt=24.3m
+I (6470681) AIR_LOG: t=6470382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.33hPa Alt=24.4m
+I (6475681) AIR_LOG: t=6475382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.33hPa Alt=24.4m
+I (6480681) AIR_LOG: t=6480382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.8% P=1010.31hPa Alt=24.5m
+I (6485681) AIR_LOG: t=6485382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.35hPa Alt=24.1m
+I (6490681) AIR_LOG: t=6490382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.7% P=1010.35hPa Alt=24.1m
+I (6495681) AIR_LOG: t=6495382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.8% P=1010.31hPa Alt=24.5m
+I (6500681) AIR_LOG: t=6500382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.8% P=1010.32hPa Alt=24.4m
+I (6505681) AIR_LOG: t=6505382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.8% P=1010.36hPa Alt=24.1m
+I (6510681) AIR_LOG: t=6510382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.8% P=1010.38hPa Alt=23.9m
+I (6515681) AIR_LOG: t=6515382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.8% P=1010.43hPa Alt=23.5m
+I (6520681) AIR_LOG: t=6520382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.8% P=1010.35hPa Alt=24.1m
+I (6525681) AIR_LOG: t=6525382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.8% P=1010.35hPa Alt=24.1m
+I (6530681) AIR_LOG: t=6530382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.39hPa Alt=23.8m
+I (6535681) AIR_LOG: t=6535382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.76C H=63.9% P=1010.40hPa Alt=23.8m
+I (6540681) AIR_LOG: t=6540382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.36hPa Alt=24.1m
+I (6545681) AIR_LOG: t=6545382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.34hPa Alt=24.3m
+I (6550681) AIR_LOG: t=6550382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.28hPa Alt=24.8m
+I (6555681) AIR_LOG: t=6555382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.34hPa Alt=24.3m
+I (6560681) AIR_LOG: t=6560382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.33hPa Alt=24.4m
+I (6565681) AIR_LOG: t=6565382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=63.9% P=1010.36hPa Alt=24.1m
+I (6570681) AIR_LOG: t=6570382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=63.9% P=1010.32hPa Alt=24.4m
+I (6575681) AIR_LOG: t=6575382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=63.9% P=1010.24hPa Alt=25.1m
+I (6580681) AIR_LOG: t=6580382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=63.9% P=1010.30hPa Alt=24.6m
+I (6585681) AIR_LOG: t=6585382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=63.9% P=1010.32hPa Alt=24.4m
+I (6590681) AIR_LOG: t=6590382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=64.0% P=1010.33hPa Alt=24.4m
+I (6595681) AIR_LOG: t=6595382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=64.0% P=1010.41hPa Alt=23.7m
+I (6600681) AIR_LOG: t=6600382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=64.0% P=1010.40hPa Alt=23.8m
+I (6605681) AIR_LOG: t=6605382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.0% P=1010.32hPa Alt=24.4m
+I (6610681) AIR_LOG: t=6610382 ms | PMS: OK PM1=0 PM2.5=34 PM10=34 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=64.0% P=1010.34hPa Alt=24.3m
+I (6615681) AIR_LOG: t=6615382 ms | PMS: OK PM1=0 PM2.5=51 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.75C H=64.0% P=1010.41hPa Alt=23.7m
+I (6620681) AIR_LOG: t=6620382 ms | PMS: OK PM1=0 PM2.5=53 PM10=59 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=64.0% P=1010.36hPa Alt=24.0m
+I (6625681) AIR_LOG: t=6625382 ms | PMS: OK PM1=0 PM2.5=57 PM10=65 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=64.1% P=1010.36hPa Alt=24.0m
+I (6630681) AIR_LOG: t=6630382 ms | PMS: OK PM1=0 PM2.5=57 PM10=67 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.74C H=64.1% P=1010.37hPa Alt=24.0m
+I (6635681) AIR_LOG: t=6635382 ms | PMS: OK PM1=0 PM2.5=62 PM10=72 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.36hPa Alt=24.1m
+I (6640681) AIR_LOG: t=6640382 ms | PMS: OK PM1=0 PM2.5=63 PM10=74 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.36hPa Alt=24.1m
+I (6645681) AIR_LOG: t=6645382 ms | PMS: OK PM1=0 PM2.5=67 PM10=79 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.35hPa Alt=24.2m
+I (6650681) AIR_LOG: t=6650382 ms | PMS: OK PM1=0 PM2.5=66 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.37hPa Alt=24.0m
+I (6655681) AIR_LOG: t=6655382 ms | PMS: OK PM1=0 PM2.5=63 PM10=75 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.33hPa Alt=24.3m
+I (6660681) AIR_LOG: t=6660382 ms | PMS: OK PM1=0 PM2.5=63 PM10=74 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.35hPa Alt=24.2m
+I (6665681) AIR_LOG: t=6665382 ms | PMS: OK PM1=0 PM2.5=54 PM10=60 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.37hPa Alt=24.0m
+I (6670681) AIR_LOG: t=6670382 ms | PMS: OK PM1=0 PM2.5=49 PM10=52 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.36hPa Alt=24.1m
+I (6675681) AIR_LOG: t=6675382 ms | PMS: OK PM1=0 PM2.5=47 PM10=50 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.38hPa Alt=23.9m
+I (6680681) AIR_LOG: t=6680382 ms | PMS: OK PM1=0 PM2.5=51 PM10=56 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.1% P=1010.34hPa Alt=24.3m
+I (6685681) AIR_LOG: t=6685382 ms | PMS: OK PM1=0 PM2.5=49 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.1% P=1010.37hPa Alt=24.0m
+I (6690681) AIR_LOG: t=6690382 ms | PMS: OK PM1=0 PM2.5=50 PM10=54 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.2% P=1010.37hPa Alt=24.0m
+I (6695681) AIR_LOG: t=6695382 ms | PMS: OK PM1=0 PM2.5=49 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.2% P=1010.39hPa Alt=23.8m
+I (6700681) AIR_LOG: t=6700382 ms | PMS: OK PM1=0 PM2.5=50 PM10=54 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.35hPa Alt=24.2m
+I (6705681) AIR_LOG: t=6705382 ms | PMS: OK PM1=0 PM2.5=45 PM10=45 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.35hPa Alt=24.2m
+I (6710681) AIR_LOG: t=6710382 ms | PMS: OK PM1=0 PM2.5=35 PM10=35 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.2% P=1010.39hPa Alt=23.8m
+I (6715681) AIR_LOG: t=6715382 ms | PMS: OK PM1=0 PM2.5=29 PM10=29 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.40hPa Alt=23.7m
+I (6720681) AIR_LOG: t=6720382 ms | PMS: OK PM1=0 PM2.5=37 PM10=37 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.2% P=1010.35hPa Alt=24.2m
+I (6725681) AIR_LOG: t=6725382 ms | PMS: OK PM1=0 PM2.5=43 PM10=45 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.35hPa Alt=24.2m
+I (6730681) AIR_LOG: t=6730382 ms | PMS: OK PM1=0 PM2.5=49 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.2% P=1010.39hPa Alt=23.8m
+I (6735681) AIR_LOG: t=6735382 ms | PMS: OK PM1=0 PM2.5=48 PM10=49 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.41hPa Alt=23.7m
+I (6740681) AIR_LOG: t=6740382 ms | PMS: OK PM1=0 PM2.5=49 PM10=53 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.2% P=1010.40hPa Alt=23.7m
+I (6745681) AIR_LOG: t=6745382 ms | PMS: OK PM1=0 PM2.5=59 PM10=68 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.3% P=1010.39hPa Alt=23.8m
+I (6750681) AIR_LOG: t=6750382 ms | PMS: OK PM1=0 PM2.5=61 PM10=71 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.3% P=1010.34hPa Alt=24.3m
+I (6755681) AIR_LOG: t=6755382 ms | PMS: OK PM1=0 PM2.5=59 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.3% P=1010.43hPa Alt=23.5m
+I (6760681) AIR_LOG: t=6760382 ms | PMS: OK PM1=0 PM2.5=58 PM10=66 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.3% P=1010.36hPa Alt=24.1m
+I (6765681) AIR_LOG: t=6765382 ms | PMS: OK PM1=0 PM2.5=59 PM10=69 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.3% P=1010.41hPa Alt=23.7m
+I (6770681) AIR_LOG: t=6770382 ms | PMS: OK PM1=0 PM2.5=60 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.73C H=64.3% P=1010.43hPa Alt=23.5m
+I (6775681) AIR_LOG: t=6775382 ms | PMS: OK PM1=0 PM2.5=61 PM10=71 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.3% P=1010.46hPa Alt=23.2m
+I (6780681) AIR_LOG: t=6780382 ms | PMS: OK PM1=0 PM2.5=61 PM10=71 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.38hPa Alt=23.9m
+I (6785681) AIR_LOG: t=6785382 ms | PMS: OK PM1=0 PM2.5=57 PM10=67 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.47hPa Alt=23.1m
+I (6790681) AIR_LOG: t=6790382 ms | PMS: OK PM1=0 PM2.5=54 PM10=63 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.42hPa Alt=23.6m
+I (6795681) AIR_LOG: t=6795382 ms | PMS: OK PM1=0 PM2.5=55 PM10=62 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.46hPa Alt=23.2m
+I (6800681) AIR_LOG: t=6800382 ms | PMS: OK PM1=0 PM2.5=56 PM10=65 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.42hPa Alt=23.6m
+I (6805681) AIR_LOG: t=6805382 ms | PMS: OK PM1=0 PM2.5=52 PM10=57 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.4% P=1010.43hPa Alt=23.5m
+I (6810681) AIR_LOG: t=6810382 ms | PMS: OK PM1=0 PM2.5=52 PM10=58 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.46hPa Alt=23.2m
+I (6815681) AIR_LOG: t=6815382 ms | PMS: OK PM1=0 PM2.5=59 PM10=67 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.4% P=1010.41hPa Alt=23.7m
+I (6820681) AIR_LOG: t=6820382 ms | PMS: OK PM1=0 PM2.5=55 PM10=62 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.72C H=64.4% P=1010.44hPa Alt=23.4m
+I (6825681) AIR_LOG: t=6825382 ms | PMS: OK PM1=0 PM2.5=60 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.42hPa Alt=23.6m
+I (6830681) AIR_LOG: t=6830382 ms | PMS: OK PM1=0 PM2.5=66 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.5% P=1010.41hPa Alt=23.7m
+I (6835681) AIR_LOG: t=6835382 ms | PMS: OK PM1=0 PM2.5=63 PM10=75 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.39hPa Alt=23.8m
+I (6840681) AIR_LOG: t=6840382 ms | PMS: OK PM1=0 PM2.5=60 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.40hPa Alt=23.7m
+I (6845681) AIR_LOG: t=6845382 ms | PMS: OK PM1=0 PM2.5=63 PM10=74 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.38hPa Alt=24.0m
+I (6850681) AIR_LOG: t=6850382 ms | PMS: OK PM1=0 PM2.5=66 PM10=78 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.5% P=1010.44hPa Alt=23.4m
+I (6855681) AIR_LOG: t=6855382 ms | PMS: OK PM1=0 PM2.5=62 PM10=73 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.5% P=1010.44hPa Alt=23.4m
+I (6860681) AIR_LOG: t=6860382 ms | PMS: OK PM1=0 PM2.5=59 PM10=69 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.45hPa Alt=23.4m
+I (6865681) AIR_LOG: t=6865382 ms | PMS: OK PM1=0 PM2.5=59 PM10=69 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.45hPa Alt=23.4m
+I (6870681) AIR_LOG: t=6870382 ms | PMS: OK PM1=0 PM2.5=60 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.5% P=1010.54hPa Alt=22.6m
+I (6875681) AIR_LOG: t=6875382 ms | PMS: OK PM1=0 PM2.5=53 PM10=59 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.5% P=1010.41hPa Alt=23.7m
+I (6880681) AIR_LOG: t=6880382 ms | PMS: OK PM1=0 PM2.5=44 PM10=46 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.6% P=1010.45hPa Alt=23.4m
+I (6885681) AIR_LOG: t=6885382 ms | PMS: OK PM1=0 PM2.5=40 PM10=40 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.6% P=1010.54hPa Alt=22.6m
+I (6890681) AIR_LOG: t=6890382 ms | PMS: OK PM1=0 PM2.5=31 PM10=31 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.47hPa Alt=23.2m
+I (6895681) AIR_LOG: t=6895382 ms | PMS: OK PM1=0 PM2.5=32 PM10=32 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.7% P=1010.53hPa Alt=22.7m
+I (6900681) AIR_LOG: t=6900382 ms | PMS: OK PM1=0 PM2.5=41 PM10=41 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.56hPa Alt=22.4m
+I (6905681) AIR_LOG: t=6905382 ms | PMS: OK PM1=0 PM2.5=42 PM10=42 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.46hPa Alt=23.3m
+I (6910681) AIR_LOG: t=6910382 ms | PMS: OK PM1=0 PM2.5=46 PM10=51 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.71C H=64.6% P=1010.47hPa Alt=23.1m
+I (6915681) AIR_LOG: t=6915382 ms | PMS: OK PM1=0 PM2.5=51 PM10=55 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.49hPa Alt=23.0m
+I (6920681) AIR_LOG: t=6920382 ms | PMS: OK PM1=0 PM2.5=47 PM10=50 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.46hPa Alt=23.3m
+I (6925681) AIR_LOG: t=6925382 ms | PMS: OK PM1=0 PM2.5=44 PM10=44 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.44hPa Alt=23.4m
+I (6930681) AIR_LOG: t=6930382 ms | PMS: OK PM1=0 PM2.5=30 PM10=30 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.6% P=1010.51hPa Alt=22.8m
+I (6935681) AIR_LOG: t=6935382 ms | PMS: OK PM1=0 PM2.5=17 PM10=17 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.42hPa Alt=23.6m
+I (6940681) AIR_LOG: t=6940382 ms | PMS: OK PM1=0 PM2.5=8 PM10=8 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.7% P=1010.51hPa Alt=22.8m
+I (6945681) AIR_LOG: t=6945382 ms | PMS: OK PM1=0 PM2.5=11 PM10=11 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.6% P=1010.50hPa Alt=22.9m
+I (6950681) AIR_LOG: t=6950382 ms | PMS: OK PM1=0 PM2.5=13 PM10=13 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.39hPa Alt=23.8m
+I (6955681) AIR_LOG: t=6955382 ms | PMS: OK PM1=0 PM2.5=7 PM10=7 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.7% P=1010.46hPa Alt=23.3m
+I (6960681) AIR_LOG: t=6960382 ms | PMS: OK PM1=0 PM2.5=4 PM10=4 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.47hPa Alt=23.2m
+I (6965681) AIR_LOG: t=6965382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.47hPa Alt=23.2m
+I (6970681) AIR_LOG: t=6970382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.70C H=64.7% P=1010.48hPa Alt=23.1m
+I (6975681) AIR_LOG: t=6975382 ms | PMS: OK PM1=0 PM2.5=10 PM10=10 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.53hPa Alt=22.7m
+I (6980681) AIR_LOG: t=6980382 ms | PMS: OK PM1=0 PM2.5=4 PM10=4 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.8% P=1010.49hPa Alt=23.0m
+I (6985681) AIR_LOG: t=6985382 ms | PMS: OK PM1=0 PM2.5=4 PM10=4 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.8% P=1010.52hPa Alt=22.8m
+I (6990681) AIR_LOG: t=6990382 ms | PMS: OK PM1=0 PM2.5=13 PM10=13 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.7% P=1010.47hPa Alt=23.1m
+I (6995681) AIR_LOG: t=6995382 ms | PMS: OK PM1=0 PM2.5=10 PM10=10 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.8% P=1010.47hPa Alt=23.2m
+I (7000681) AIR_LOG: t=7000382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=64.8% P=1010.43hPa Alt=23.5m
+I (7005681) AIR_LOG: t=7005382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.69C H=64.8% P=1010.52hPa Alt=22.8m
+I (7010681) AIR_LOG: t=7010382 ms | PMS: OK PM1=0 PM2.5=7 PM10=7 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=64.7% P=1010.48hPa Alt=23.1m
+I (7015681) AIR_LOG: t=7015382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=64.8% P=1010.48hPa Alt=23.1m
+I (7020681) AIR_LOG: t=7020382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=64.8% P=1010.48hPa Alt=23.0m
+I (7025681) AIR_LOG: t=7025382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.68C H=64.8% P=1010.54hPa Alt=22.6m
+I (7030681) AIR_LOG: t=7030382 ms | PMS: OK PM1=0 PM2.5=7 PM10=7 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=64.8% P=1010.46hPa Alt=23.3m
+I (7035681) AIR_LOG: t=7035382 ms | PMS: OK PM1=0 PM2.5=40 PM10=40 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=64.8% P=1010.49hPa Alt=23.0m
+I (7040681) AIR_LOG: t=7040382 ms | PMS: OK PM1=0 PM2.5=37 PM10=37 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=64.9% P=1010.48hPa Alt=23.1m
+I (7045681) AIR_LOG: t=7045382 ms | PMS: OK PM1=0 PM2.5=21 PM10=21 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=64.9% P=1010.53hPa Alt=22.7m
+I (7050681) AIR_LOG: t=7050382 ms | PMS: OK PM1=0 PM2.5=4 PM10=4 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=64.8% P=1010.46hPa Alt=23.3m
+I (7055681) AIR_LOG: t=7055382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=64.8% P=1010.48hPa Alt=23.1m
+I (7060681) AIR_LOG: t=7060382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=64.9% P=1010.42hPa Alt=23.6m
+I (7065681) AIR_LOG: t=7065382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=64.9% P=1010.50hPa Alt=22.9m
+I (7070681) AIR_LOG: t=7070382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.0% P=1010.45hPa Alt=23.3m
+I (7075681) AIR_LOG: t=7075382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.0% P=1010.49hPa Alt=23.0m
+I (7080681) AIR_LOG: t=7080382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.0% P=1010.51hPa Alt=22.8m
+I (7085681) AIR_LOG: t=7085382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.0% P=1010.49hPa Alt=23.0m
+I (7090681) AIR_LOG: t=7090382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.67C H=65.0% P=1010.49hPa Alt=23.0m
+I (7095681) AIR_LOG: t=7095382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.0% P=1010.48hPa Alt=23.1m
+I (7100681) AIR_LOG: t=7100382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.1% P=1010.45hPa Alt=23.3m
+I (7105681) AIR_LOG: t=7105382 ms | PMS: OK PM1=0 PM2.5=4 PM10=4 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.0% P=1010.47hPa Alt=23.2m
+I (7110681) AIR_LOG: t=7110382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.1% P=1010.47hPa Alt=23.2m
+I (7115681) AIR_LOG: t=7115382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.1% P=1010.52hPa Alt=22.7m
+I (7120681) AIR_LOG: t=7120382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.1% P=1010.49hPa Alt=23.0m
+I (7125681) AIR_LOG: t=7125382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.54hPa Alt=22.6m
+I (7130681) AIR_LOG: t=7130382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.54hPa Alt=22.6m
+I (7135681) AIR_LOG: t=7135382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.66C H=65.1% P=1010.47hPa Alt=23.2m
+I (7140681) AIR_LOG: t=7140382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.57hPa Alt=22.4m
+I (7145681) AIR_LOG: t=7145382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.51hPa Alt=22.8m
+I (7150681) AIR_LOG: t=7150382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.54hPa Alt=22.6m
+I (7155681) AIR_LOG: t=7155382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.1% P=1010.58hPa Alt=22.3m
+I (7160681) AIR_LOG: t=7160382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.1% P=1010.60hPa Alt=22.1m
+I (7165681) AIR_LOG: t=7165382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=65.1% P=1010.53hPa Alt=22.7m
+I (7170681) AIR_LOG: t=7170382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.1% P=1010.51hPa Alt=22.8m
+I (7175681) AIR_LOG: t=7175382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.65C H=65.1% P=1010.53hPa Alt=22.7m
+I (7180681) AIR_LOG: t=7180382 ms | PMS: OK PM1=0 PM2.5=0 PM10=0 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.2% P=1010.58hPa Alt=22.3m
+I (7185681) AIR_LOG: t=7185382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.2% P=1010.51hPa Alt=22.8m
+I (7190681) AIR_LOG: t=7190382 ms | PMS: OK PM1=0 PM2.5=1 PM10=1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.2% P=1010.54hPa Alt=22.6m
+I (7195681) AIR_LOG: t=7195382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.64C H=65.2% P=1010.49hPa Alt=23.0m
+I (7200681) AIR_LOG: t=7200382 ms | PMS: OK PM1=0 PM2.5=2 PM10=2 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.63C H=65.2% P=1010.51hPa Alt=22.9m
+I (7200681) AIR_LOG: Block #8 collected (180 samples). Writing to SD...
+
+
+
+
+      Các nhận xét về session này:
+  Dữ liệu đã kết hợp cả Bài 1 (Tăng ẩm) và Bài 2 (Giảm ẩm) vào trong một session
+  Dẫn đến việc không đánh giá được sâu sắc khả năng "Giữ độ ẩm ở mức cao" trong thời gian dài như yêu cầu của Bài 1.
+-        Ưu điểm:
+- Hệ thống tạo ẩm mạnh: 
+Tốc độ đáp ứng rất tốt. Chỉ mất 15 phút (17:30 - 17:45) để kéo từ 63% lên 99% (Bão hòa).
+
+- Quan sát hiện tượng vật lý tốt: 
+Sinh viên có ghi chú lại hiện tượng ngưng tụ nước trên thành kính và cảm biến. 
+Đây là dữ liệu quan trọng để thiết kế vỏ hộp.
+
+- Trung thực và Phản ứng nhanh: 
+Khi hệ thống gặp lỗi SD card, sinh viên đã chuyển sang log tay ngay lập tức và ghi chú rõ ràng các block bị lỗi.
+Phát hiện điểm Nút cổ chai: 
+Đã xác định được giới hạn giảm ẩm của hệ thống là khoảng 62-63%, cho thấy hiệu suất tách ẩm chưa tốt hoặc cách nhiệt chưa đạt.
+
+-       Hạn chế:
+- Lạc đề bài test: 
+Yêu cầu bài 1 là "Giữ mức cao". Nhóm chỉ giữ max được khoảng 3-5 phút (17:45-17:48) rồi chuyển sang giảm ẩm ngay. 
+Cần duy trì ít nhất 30-45 phút ở mức 90-95% để xem linh kiện có bị rỉ sét, ngắt kết nối hay cảm biến bị trôi khi ngâm ẩm lâu hay không.
+
+- Độ ổn định hệ thống kém (Critical): Lỗi ghi thẻ SD (Block 5, 6, 7, 8) xảy ra liên tục ở nửa sau bài test.
+
+- Sai lệch thiết bị tham chiếu: 
+Ở cuối bài (7:05), thiết bị tham chiếu đo 68-72% trong khi cảm biến hệ thống đo ~62-63%. 
+Độ lệch >5% là quá lớn, cần xem lại vị trí đặt sensor hoặc hiệu chuẩn lại.
+
+- Hiệu quả giảm ẩm kém: 
+Từ 99% xuống 63% mất 35 phút, nhưng sau đó "đứng hình" ở 63%. 
+Điều này cho thấy hệ thống đang chỉ "thông gió" với môi trường chứ không thực sự "bơm nhiệt" để tách nước hiệu quả thấp hơn môi trường.
+
+
+Lưu ý ở session sau, cùng 1 bài test trên:
+Chỉ làm Bài Test 1 (Tăng ẩm & Giữ ẩm). Không chuyển sang chế độ giảm ẩm giữa chừng.
+Khi đạt 85-90%, hãy điều khiển giữ độ ẩm dao động quanh mức này trong 60 phút. 
+Mục tiêu là xem nước có nhỏ giọt vào mạch điện hay sensor có bị "treo" số liệu không.
+
+Xử lý hiện tượng bão hòa (Saturation Handling):
+Cải thiện vị trí đặt sensor:
+Đặt thiết bị tham chiếu sát với cảm biến của hệ thống hơn để loại trừ sai số do không gian.
+
+Ghi chép về nhiệt độ kỹ hơn:
+Trong log thấy nhiệt độ tăng dần từ 27.1 lên 28.6 độ C. 
+Hãy phân tích xem nhiệt tăng do môi trường hay do nhiệt tỏa ra từ các linh kiện trong hộp?

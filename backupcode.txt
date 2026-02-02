@@ -23,13 +23,15 @@ SensorData_t g_sensors = {0};
 SystemSetpoints_t g_setpoints = { .target_hum = DEFAULT_TARGET_HUM, .mode = 0 };
 SystemState_t g_current_state = STATE_IDLE;
 
-const char *STATE_NAMES[] = { "IDLE", "HUMID", "DEHUM", "TEST", "EMERG" };
+const char *STATE_NAMES[] = { "IDLE", "HUMID", "DEHUM", "DEFRT", "TEST", "EMERG" };
 
 static bool is_setup_mode = false;
 
 // ================= CONFIGURATION =================
-// Config constants moved to config.h
-// SHT_SAMPLE_INTERVAL_MS, MA_WINDOW_SIZE, LOG_INTERVAL_MS, FLUSH_INTERVAL_MS
+#define SHT_SAMPLE_INTERVAL_MS  250   // Đọc SHT35 mỗi 250ms (4Hz)
+#define MA_WINDOW_SIZE          20    // 20 mẫu * 250ms = 5 giây trung bình
+#define LOG_INTERVAL_MS         5000  // Tổng hợp dữ liệu mỗi 5 giây
+#define FLUSH_INTERVAL_MS       900000 // Ghi thẻ nhớ mỗi 15 phút (15 * 60 * 1000)
 
 // Buffer lớn cho 15 phút dữ liệu
 // 15 phút / 5 giây = 180 dòng. Mỗi dòng ~60 ký tự. 
@@ -162,20 +164,17 @@ void app_main(void) {
                 if (g_sensors.error_count > 10) g_sensors.air_ok = false;
             }
 
-            // B. Trigger DS18B20 (Read every 1 second)
+            // B. Trigger DS18B20 (Slow update, we read it later/async or just periodically)
+            // Since we are in a fast loop, let's just trigger and read in the Logging block 
+            // to avoid blocking 750ms here. Or read every 1s.
+            // Simplified: We assume DS18B20 is handled less frequently or just read last known.
+            // For now, let's read DS18B20 every 4th cycle (1 second) to be safe
             static int ds_div = 0;
-            static int s_water_error_count = 0;
             if (++ds_div >= 4) {
                 float tw;
                 if (ds18b20_read_temp(&tw) == ESP_OK) {
                     g_sensors.t_water = tw;
                     g_sensors.water_ok = true;
-                    s_water_error_count = 0; // Reset counter on success
-                } else {
-                    s_water_error_count++;
-                    if (s_water_error_count >= 3) {
-                        g_sensors.water_ok = false; // Mark as failed after 3 attempts
-                    }
                 }
                 ds18b20_trigger_conversion();
                 ds_div = 0;
@@ -215,9 +214,9 @@ void app_main(void) {
             }
         }
 
-                // ============================================================ 
+                // ============================================================
                 // 3. FLUSH TO SD CARD (Every 15 Minutes)
-                // ============================================================ 
+                // ============================================================
                 if (!is_setup_mode && sd_card_is_mounted() && (now - last_flush_15m > FLUSH_INTERVAL_MS)) {
                     last_flush_15m = now;
                     

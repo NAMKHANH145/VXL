@@ -1,0 +1,482 @@
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+✦ Tôi đã phân tích toàn bộ mã nguồn của dự án health_watch_test và xây dựng sơ đồ luồng chi tiết (Function Flow) dưới dạng cây. Sơ đồ này bao gồm từ hàm
+  app_main đến các tác vụ (Tasks) chạy song song và logic xử lý bên trong.
+
+  Sơ Đồ Luồng Dự Án: Health Watch
+
+     1 PROJECT ROOT (ESP32-S3 Firmware)
+     2 │
+     3 ├── [Entry Point] app_main() (main/main.c)
+     4 │   ├── 1. System Setup
+     5 │   │   ├── esp_log_level_set()        -> Cấu hình logging
+     6 │   │   ├── esp_task_wdt_init()        -> Khởi tạo Watchdog (30s)
+     7 │   │   ├── print_debug_info()         -> In thông tin chip/RAM
+     8 │   │   └── Data Structures Init:
+     9 │   │       ├── xSemaphoreCreateMutex() -> i2c_ppg_mutex, i2c_aux_mutex
+    10 │   │       ├── xQueueCreate()          -> sensor_data_queue, free_buf_queue
+    11 │   │       └── xQueueCreate()          -> health_metrics_queue, temperature_queue, fast_status_queue
+    12 │   │
+    13 │   ├── 2. UI Initialization
+    14 │   │   ├── ui_init() (main/ui.c)
+    15 │   │   │   ├── spi_bus_initialize()   -> Khởi tạo SPI cho màn hình
+    16 │   │   │   ├── esp_lcd_new_panel()    -> Khởi tạo driver ST7789
+    17 │   │   │   ├── lv_init()              -> Khởi tạo LVGL Graphics Lib
+    18 │   │   │   └── create_screens()       -> Tạo các màn hình (Splash, Main, Secondary)
+    19 │   │   └── xTaskCreatePinnedToCore(lvgl_task) -> Tạo Task hiển thị
+    20 │   │
+    21 │   ├── 3. Hardware Initialization
+    22 │   │   ├── i2c_setup_buses()          -> Khởi tạo 2 bus I2C (PPG & AUX)
+    23 │   │   ├── button_gpio_init()         -> Cấu hình nút bấm
+    24 │   │   ├── power_manager_init()       -> Cấu hình Dynamic Frequency Scaling (DFS) & Light Sleep
+    25 │   │   ├── nvs_flash_init()           -> Khởi tạo bộ nhớ flash (lưu config/calib)
+    26 │   │   └── ble_server_init()          -> Khởi tạo BLE GATT Server
+    27 │   │
+    28 │   ├── 4. Sensor & AI Setup
+    29 │   │   ├── max30102_init()            -> Cấu hình cảm biến PPG (Heart Rate/SpO2)
+    30 │   │   ├── mpu6050_init()             -> Cấu hình cảm biến gia tốc (IMU)
+    31 │   │   ├── max30205_init()            -> Cấu hình cảm biến nhiệt độ
+    32 │   │   └── tinyml_init() (tinyml_manager.cc)
+    33 │   │       ├── allocate_arena()       -> Cấp phát RAM cho AI
+    34 │   │       ├── tflite::GetModel()     -> Load 3 models (HR, Stress, Resp)
+    35 │   │       └── AllocateTensors()      -> Chuẩn bị bộ nhớ thực thi AI
+    36 │   │
+    37 │   └── 5. Task Creation (RTOS)
+    38 │       ├── xTaskCreate(sensor_acquisition_task) -> Task thu thập dữ liệu (Core 0)
+    39 │       ├── xTaskCreate(slow_maintenance_task)   -> Task nhiệt độ/pin (Core 0)
+    40 │       ├── xTaskCreate(signal_processing_task)  -> Task xử lý tín hiệu & AI (Core 1)
+    41 │       └── xTaskCreate(button_task)             -> Task nút bấm (Core 0)
+    42 │
+    43 ├── [Task 1] sensor_acquisition_task (Core 0, Priority: High)
+    44 │   ├── gptimer_start() -> Bắt đầu Hardware Timer (để trigger đọc sensor chính xác)
+    45 │   └── LOOP (Vòng lặp vô hạn):
+    46 │       ├── Wait for Timer Notification
+    47 │       ├── xSemaphoreTake(i2c_ppg_mutex) -> Khóa I2C Bus PPG
+    48 │       ├── max30102_read_fifo_burst()    -> Đọc hàng loạt mẫu (Red/IR) từ FIFO
+    49 │       ├── xSemaphoreTake(i2c_aux_mutex) -> Khóa I2C Bus AUX
+    50 │       ├── mpu6050_read_raw_data()       -> Đọc dữ liệu gia tốc (Accel X,Y,Z)
+    51 │       ├── AGC Logic (Auto Gain Control):
+    52 │       │   └── Nếu tín hiệu quá yếu/mạnh -> max30102_set_led_current()
+    53 │       ├── Activity Check:
+    54 │       │   └── Nếu không có tín hiệu/chuyển động lâu -> ui_enter_sleep()
+    55 │       ├── Sliding Window Buffer:
+    56 │       │   └── Đẩy dữ liệu mới vào `g_red_buffer`, `g_ir_buffer`, `g_accel`
+    57 │       ├── Fast Status Update:
+    58 │       │   └── xQueueSend(fast_status_queue) -> Gửi trạng thái ngón tay/nhiễu tới UI ngay lập tức
+    59 │       └── Full Window Ready?
+    60 │           └── xQueueSend(sensor_data_queue) -> Gửi gói dữ liệu 100-sample sang Task xử lý
+    61 │
+    62 ├── [Task 2] signal_processing_task (Core 1, Priority: High)
+    63 │   └── LOOP:
+    64 │       ├── xQueueReceive(sensor_data_queue) -> Nhận gói dữ liệu thô
+    65 │       ├── Thermal Throttling Check:
+    66 │       │   └── Nếu nhiệt độ > 40°C -> Giảm xung nhịp CPU
+    67 │       ├── Pre-processing (Tiền xử lý):
+    68 │       │   ├── kalman_filter_update()  -> Lọc nhiễu dữ liệu gia tốc (Accel)
+    69 │       │   ├── ppg_filter_process()    -> Lọc thông dải (Bandpass) cho tín hiệu IR
+    70 │       │   └── lms_filter_update()     -> Lọc thích nghi (Adaptive Filter) khử nhiễu chuyển động
+    71 │       ├── Quality Check:
+    72 │       │   ├── z_score_normalize()     -> Chuẩn hóa dữ liệu về dạng chuẩn (Mean=0, Std=1)
+    73 │       │   └── calculate_signal_quality_index() -> Tính điểm chất lượng tín hiệu (SQI)
+    74 │       ├── AI Inference (TinyML):
+    75 │       │   ├── tinyml_predict_bpm()        -> Chạy mô hình HR (Denoise/UNet) -> HR raw
+    76 │       │   ├── tinyml_predict_respiration()-> Chạy mô hình hô hấp -> Resp Rate raw
+    77 │       │   └── tinyml_predict_stress()     -> Chạy mô hình Stress -> Stress Score
+    78 │       ├── Algorithmic Calculation:
+    79 │       │   └── calculate_spo2()            -> Tính SpO2 dựa trên tỷ lệ R (Red/IR AC/DC)
+    80 │       ├── Post-processing (Hậu xử lý):
+    81 │       │   └── EMA Smoothing (Exponential Moving Average) -> Làm mượt kết quả HR, SpO2, Stress
+    82 │       ├── Data Persistence & Comm:
+    83 │       │   ├── ble_update_data()           -> Cập nhật giá trị cho BLE Server
+    84 │       │   └── nvs_set_u32()               -> Lưu dữ liệu xu hướng (Trend) vào Flash (mỗi 60s)
+    85 │       └── UI Update:
+    86 │           └── xQueueSend(health_metrics_queue) -> Gửi kết quả cuối cùng tới UI
+    87 │
+    88 ├── [Task 3] slow_maintenance_task (Core 0, Priority: Low)
+    89 │   └── LOOP (Chu kỳ chậm):
+    90 │       ├── xSemaphoreTake(i2c_aux_mutex)
+    91 │       ├── max30205_read_temperature() -> Đọc nhiệt độ cơ thể
+    92 │       ├── kalman_filter_update()      -> Làm mượt nhiệt độ
+    93 │       ├── adc_oneshot_read()          -> Đọc điện áp pin
+    94 │       ├── Calculate Battery %         -> Chuyển đổi Volts -> %
+    95 │       └── xQueueSend(temperature_queue) -> Gửi nhiệt độ tới UI
+    96 │
+    97 ├── [Task 4] lvgl_task (Core 1, Priority: UI)
+    98 │   └── LOOP:
+    99 │       ├── ui_tick_handler()           -> Duy trì nhịp thời gian cho LVGL
+   100 │       ├── Handle Queues:
+   101 │       │   ├── fast_status_queue       -> Cập nhật icon, status text (Scanning/Measuring...)
+   102 │       │   ├── health_metrics_queue    -> Cập nhật số liệu HR, SpO2, Stress
+   103 │       │   └── temperature_queue       -> Cập nhật số liệu Nhiệt độ
+   104 │       ├── ui_update_metrics()         -> Vẽ lại các Label, Icon trên màn hình
+   105 │       └── lv_timer_handler()          -> Thực thi việc render ra màn hình (SPI write)
+   106 │
+   107 ├── [Task 5] button_task (Core 0, Priority: Low)
+   108 │   └── LOOP:
+   109 │       ├── gpio_get_level()            -> Kiểm tra trạng thái nút bấm
+   110 │       └── Debounce Logic              -> Chống rung phím
+   111 │           └── ui_handle_button()      -> Chuyển màn hình (Splash -> Main -> Secondary)
+   112 │
+   113 └── [BLE Server Component] (main/ble_server.c)
+   114     ├── gatts_event_handler()           -> Xử lý sự kiện kết nối/ngắt kết nối
+   115     └── ble_update_data()               -> Gửi Notification tới điện thoại khi có dữ liệu mới
+
+  Chi tiết các file quan trọng:
+
+   1. `main.c`: "Nhạc trưởng", điều phối việc khởi tạo và tạo các tasks. Nó quản lý bộ nhớ đệm (buffer pools) để truyền dữ liệu giữa các tasks mà không cần
+      copy nhiều lần (zero-copy attempt).
+   2. `tinyml_manager.cc`: Quản lý việc load model TensorFlow Lite Micro, cấp phát bộ nhớ "Arena" (ưu tiên PSRAM, fallback về SRAM) và chạy suy luận
+      (Inference).
+   3. `ui.c`: Xử lý toàn bộ giao diện người dùng. Nó không tính toán, chỉ nhận dữ liệu từ Queue và hiển thị. Nó sử dụng cơ chế Double buffering để vẽ mượt
+      mà không bị giật (tearing).
+   4. `algorithms.c`: Chứa các thuật toán toán học thuần túy: bộ lọc Kalman, tính SpO2 (dựa trên đỉnh/đáy tín hiệu), chuẩn hóa Z-Score.
+
+  Bạn có cần tôi đi sâu vào chi tiết của một hàm cụ thể nào (ví dụ: logic tính SpO2 hay logic của bộ lọc Kalman) không?
+
+> đầu tiên, làm rõ tiếp phần này:  1. System Setup
+       5 │   │   ├── esp_log_level_set()        -> Cấu hình logging
+       6 │   │   ├── esp_task_wdt_init()        -> Khởi tạo Watchdog (30s)
+       7 │   │   ├── print_debug_info()         -> In thông tin chip/RAM
+       8 │   │   └── Data Structures Init:
+       9 │   │       ├── xSemaphoreCreateMutex() -> i2c_ppg_mutex, i2c_aux_mutex
+      10 │   │       ├── xQueueCreate()          -> sensor_data_queue, free_buf_queue
+      11 │   │       └── xQueueCreate()          -> health_metrics_queue, temperature_queue, fast_status_queue, chúng ta cần vẽ so đồ sâu hơn, vào đến từng
+  logic của từng dòng code
+
+✦ Đây là sơ đồ luồng chi tiết (Deep Dive Flow) cho giai đoạn 1. System Setup trong hàm app_main của file main/main.c.
+
+  Tôi sẽ phân rã logic đến mức từng dòng lệnh, điều kiện kiểm tra (if/else), và vòng lặp cấp phát bộ nhớ.
+
+  CHI TIẾT GIAI ĐOẠN 1: SYSTEM SETUP & MEMORY ALLOCATION
+
+    1 [BẮT ĐẦU] app_main() (main/main.c: Line ~786)
+    2 │
+    3 ├── 1.1. LOGGING CONFIGURATION (Giảm nhiễu Log)
+    4 │   ├── [Lệnh] esp_log_level_set("MAIN", ESP_LOG_INFO)
+    5 │   │   └── Ý nghĩa: Chỉ in các log quan trọng từ Main, ẩn Debug/Verbose.
+    6 │   ├── [Lệnh] esp_log_level_set("MAX30102", ESP_LOG_WARN)
+    7 │   │   └── Ý nghĩa: Driver cảm biến chỉ báo lỗi (Warning/Error), không in dữ liệu thô liên tục.
+    8 │   ├── [Lệnh] esp_log_level_set("MPU6050", ESP_LOG_WARN)
+    9 │   └── [Lệnh] esp_log_level_set("TinyML", ESP_LOG_INFO)
+   10 │
+   11 ├── 1.2. WATCHDOG TIMER SETUP (Cơ chế an toàn)
+   12 │   ├── [Khởi tạo Struct] esp_task_wdt_config_t twdt_config
+   13 │   │   ├── .timeout_ms = 30000 (30 giây) -> Nếu hệ thống treo quá 30s sẽ reset.
+   14 │   │   ├── .idle_core_mask = (1<<0)|(1<<1) -> Giám sát cả 2 core CPU khi Idle.
+   15 │   │   └── .trigger_panic = true -> Gây ra Core Dump để debug khi lỗi.
+   16 │   └── [Lệnh] esp_task_wdt_reconfigure(&twdt_config)
+   17 │       └── Gọi API hệ thống để áp dụng cấu hình mới.
+   18 │
+   19 ├── 1.3. SYSTEM DIAGNOSTICS (Hàm print_debug_info)
+   20 │   ├── [Lệnh] vTaskDelay(3000ms)
+   21 │   │   └── Mục đích: Chờ 3 giây để người dùng kịp mở Serial Monitor (tránh trôi log khởi động).
+   22 │   ├── [Lệnh] esp_chip_info(&chip_info)
+   23 │   │   └── Lấy thông tin phần cứng: Loại chip (ESP32-S3), số nhân (2 cores), bản silicon.
+   24 │   ├── [Lệnh] heap_caps_get_free_size(MALLOC_CAP_INTERNAL)
+   25 │   │   └── Kiểm tra dung lượng RAM nội còn trống trước khi cấp phát nặng.
+   26 │   └── [Log] In toàn bộ thông tin trên ra màn hình.
+   27 │
+   28 ├── 1.4. CONCURRENCY CONTROL (Mutex Init)
+   29 │   ├── [Lệnh] i2c_ppg_mutex = xSemaphoreCreateMutex()
+   30 │   │   └── Tạo khóa cho Bus I2C số 0 (Dùng riêng cho MAX30102).
+   31 │   │   └── Mục đích: Đảm bảo không có 2 task cùng truy cập cảm biến PPG cùng lúc.
+   32 │   └── [Lệnh] i2c_aux_mutex = xSemaphoreCreateMutex()
+   33 │       └── Tạo khóa cho Bus I2C số 1 (Dùng chung cho MPU6050 và MAX30205).
+   34 │
+   35 ├── 1.5. DATA STRUCTURES & MEMORY POOL (Logic phức tạp nhất)
+   36 │   │
+   37 │   ├── A. Định nghĩa vùng nhớ ưu tiên
+   38 │   │   └── [Var] caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT
+   39 │   │   └── Ý nghĩa: Buộc phải dùng RAM nội tốc độ cao (SRAM) cho data buffer, không dùng PSRAM (chậm hơn).
+   40 │   │
+   41 │   ├── B. Khởi tạo Queues quản lý Pointer (Zero-Copy)
+   42 │   │   ├── [Lệnh] sensor_data_queue = xQueueCreate(POOL_SIZE=3, sizeof(pointer))
+   43 │   │   │   └── Queue này chứa các gói dữ liệu ĐÃ CÓ dữ liệu (Ready to process).
+   44 │   │   └── [Lệnh] free_buf_queue = xQueueCreate(POOL_SIZE=3, sizeof(pointer))
+   45 │   │       └── Queue này chứa các gói dữ liệu TRỐNG (Available for writing).
+   46 │   │
+   47 │   ├── C. Cấp phát Memory Pool (Vòng lặp)
+   48 │   │   ├── [Loop] for (i = 0; i < POOL_SIZE; i++)
+   49 │   │   │   ├── [Cấp phát] void *pkg = heap_caps_malloc(sizeof(sensor_data_package_t), caps)
+   50 │   │   │   │   └── Xin cấp phát struct lớn (~2KB) trong RAM nội.
+   51 │   │   │   ├── [Kiểm tra] if (pkg != NULL) ?
+   52 │   │   │   │   ├── [TRUE] xQueueSend(free_buf_queue, &pkg, 0)
+   53 │   │   │   │   │   └── Đẩy địa chỉ gói nhớ vừa tạo vào hàng đợi "TRỐNG".
+   54 │   │   │   │   │   └── Kết quả: Lúc đầu `free_buf_queue` sẽ đầy 3 gói trống.
+   55 │   │   │   │   └── [FALSE] ESP_LOGE("Alloc Fail") -> Báo lỗi thiếu RAM.
+   56 │   │
+   57 │   ├── D. Khởi tạo Queues giao tiếp (Communication Queues)
+   58 │   │   ├── [Lệnh] health_metrics_queue = xQueueCreate(...) -> Gửi KQ nhịp tim sang UI.
+   59 │   │   ├── [Lệnh] temperature_queue = xQueueCreate(...)    -> Gửi nhiệt độ sang UI.
+   60 │   │   └── [Lệnh] fast_status_queue = xQueueCreate(...)    -> Gửi trạng thái tức thời (Scanning...).
+   61 │   │
+   62 │   └── E. Cấp phát các bộ đệm tín hiệu lớn (Sliding Windows)
+   63 │       ├── [Cấp phát] g_red_buffer = heap_caps_malloc(WINDOW_SIZE * 4, caps)
+   64 │       ├── [Cấp phát] g_ir_buffer  = heap_caps_malloc(WINDOW_SIZE * 4, caps)
+   65 │       ├── [Cấp phát] g_accel_x/y/z = heap_caps_malloc(...)
+   66 │       │   └── Đây là các mảng lưu 512 mẫu (khoảng 5 giây) để xử lý DSP.
+   67 │       └── [Kiểm tra an toàn] if (!g_red_buffer) ?
+   68 │           └── [TRUE] ESP_LOGE("Global Buffer Alloc Fail!") -> return; (Dừng chương trình).
+   69 │
+   70 └── [KẾT THÚC SYSTEM SETUP] -> Chuyển sang bước 2 (UI Init)
+
+  Giải thích kỹ thuật chuyên sâu cho từng phần:
+
+   1. Tại sao `vTaskDelay(3000)`?
+       * ESP32 khi boot sẽ bắn log ra rất nhanh. Nếu bạn dùng công cụ như idf.py monitor hoặc Arduino Serial Monitor, cổng COM cần thời gian để kết nối lại
+         sau khi chip reset. 3 giây delay đảm bảo bạn không bỏ lỡ dòng log quan trọng "System Ready" hoặc thông tin lỗi khởi động.
+
+   2. Logic "Data Structures Init" (Dòng 9-11):
+       * Đây là mô hình Object Pool Pattern (Mẫu hồ chứa đối tượng).
+       * Thay vì mỗi lần đọc cảm biến lại malloc() (cấp phát) và sau khi xử lý xong lại free() (giải phóng) -> Gây phân mảnh bộ nhớ (fragmentation) và chậm.
+       * Chúng ta cấp phát cố định 3 gói (POOL_SIZE = 3) ngay từ đầu.
+       * Quy trình luân chuyển:
+           1. Task Sensor lấy 1 gói trống từ free_buf_queue.
+           2. Ghi dữ liệu vào gói đó.
+           3. Đẩy gói đó sang sensor_data_queue.
+           4. Task Xử lý nhận gói từ sensor_data_queue.
+           5. Xử lý xong, đẩy trả lại gói đó về free_buf_queue.
+       * Zero-Copy: Các Queue chỉ chứa địa chỉ con trỏ (4 bytes), không copy dữ liệu thực (2KB), giúp tốc độ cực nhanh.
+
+   3. Tại sao `MALLOC_CAP_INTERNAL`?
+       * Mặc dù ESP32-S3 có PSRAM (RAM ngoài) lớn, nhưng truy cập PSRAM chậm hơn RAM nội (SRAM).
+       * Các buffer này được truy cập liên tục trong vòng lặp ngắt (Timer ISR) và bộ lọc DSP, nên buộc phải để ở RAM nội để đạt hiệu năng cao nhất, tránh
+         tắc nghẽn Bus.
+
+  Bạn có muốn tôi đi tiếp vào sơ đồ chi tiết của Task Quan Trọng Nhất (ví dụ: sensor_acquisition_task hay signal_processing_task) không?
+
+> core dump, idle là gì
+
+✦ Trong ngữ cảnh lập trình nhúng (ESP32) và hệ điều hành thời gian thực (FreeRTOS) mà dự án này đang sử dụng, hai thuật ngữ này có ý nghĩa như sau:
+
+  ---
+
+  1. CORE DUMP (Bản sao lưu vùng nhớ khi lỗi)
+
+  Hãy tưởng tượng Core Dump giống như một cái "Hộp đen" của máy bay.
+
+   * Định nghĩa: Khi chương trình gặp lỗi nghiêm trọng (như chia cho 0, truy cập vào vùng nhớ không tồn tại, hoặc bị Watchdog reset), hệ thống sẽ chụp lại
+     toàn bộ "trạng thái" của chip tại đúng thời điểm đó và lưu vào bộ nhớ Flash hoặc gửi qua cổng Serial.
+   * Trạng thái bao gồm những gì?
+       * Giá trị các thanh ghi (Registers).
+       * Ngăn xếp (Stack) của các Task đang chạy.
+       * Địa chỉ câu lệnh cuối cùng mà CPU thực thi trước khi "chết".
+   * Tại sao lại cần?
+       * Bình thường khi chip lỗi, nó chỉ báo Guru Meditation Error (màn hình xanh của ESP32). Bạn sẽ không biết lỗi ở dòng code nào.
+       * Nếu có Core Dump, bạn có thể dùng công cụ của ESP-IDF để "soi" ngược lại (Backtrace) và biết chính xác: Task nào làm lỗi, tại file nào, dòng bao
+         nhiêu.
+   * Trong dự án của bạn: Khi cấu hình .trigger_panic = true cho Watchdog, nếu hệ thống bị treo quá 30 giây, nó sẽ coi đó là lỗi nghiêm trọng và tự động
+     kích hoạt Core Dump để bạn điều tra nguyên nhân treo máy.
+
+  ---
+
+  2. IDLE (Trạng thái rảnh rỗi)
+
+  Idle nghĩa là "Rảnh rỗi" hoặc "Nghỉ ngơi".
+
+   * Idle Task: Trong hệ điều hành FreeRTOS, CPU không bao giờ thực sự dừng lại. Nếu tất cả các Task của bạn (Sensor, UI, AI) đều đang chờ (Delay) hoặc chưa
+     có việc gì làm, hệ thống sẽ chạy một Task đặc biệt gọi là Idle Task. Task này có mức ưu tiên thấp nhất (Priority 0).
+   * Idle Core Mask: Trong cấu hình Watchdog của dự án (.idle_core_mask = (1 << 0) | (1 << 1)):
+       * Nó yêu cầu Watchdog phải giám sát trạng thái Idle của cả Core 0 và Core 1.
+       * Logic: Nếu một Core CPU không bao giờ chạy được vào Task Idle (nghĩa là nó bị chiếm dụng 100% bởi một Task nào đó quá lâu mà không nhường nhịn),
+         Watchdog sẽ nghi ngờ Task đó bị "vòng lặp vô tận" và sẽ thực hiện reset chip.
+   * Power Management (Quản lý điện năng):
+       * Dự án của bạn có dùng esp_pm_configure với light_sleep_enable = true.
+       * Khi cả 2 Core CPU rơi vào trạng thái Idle, hệ thống sẽ tự động giảm xung nhịp hoặc đưa chip vào chế độ Light Sleep để tiết kiệm pin. Đây là lý do
+         tại sao trạng thái Idle rất quan trọng với các thiết bị đeo tay (Health Watch).
+
+  ---
+
+  Tóm lại:
+   * Core Dump: Công cụ giúp bạn "khám nghiệm tử thi" phần mềm để tìm ra nguyên nhân crash.
+   * Idle: Là lúc CPU không có việc gì làm. Hệ thống dùng trạng thái này để tiết kiệm pin và để Watchdog kiểm tra xem phần mềm có bị "treo cứng" ở đâu
+     không.
+
+> concurrency, mutex là gì
+
+✦ Trong lập trình hệ thống nhúng đa nhiệm (Multitasking) như dự án Health Watch của bạn, Concurrency và Mutex là hai khái niệm nền tảng để quản lý tài
+  nguyên:
+
+  1. Concurrency (Tính đồng thời)
+
+   * Khái niệm: Concurrency là khả năng hệ thống xử lý nhiều việc cùng một khoảng thời gian.
+   * Trong dự án Health Watch:
+       * Bạn có 1 vi điều khiển ESP32 với 2 nhân (Core).
+       * Nhưng bạn có tới 5 công việc (Tasks) cần chạy:
+           1. Đọc cảm biến (Sensor Task).
+           2. Vẽ màn hình (UI Task).
+           3. Tính toán AI (Processing Task).
+           4. Đọc nhiệt độ chậm (Maintenance Task).
+           5. Xử lý nút bấm (Button Task).
+       * Hệ điều hành (FreeRTOS) sẽ chuyển đổi qua lại giữa các Task này cực nhanh (vài mili-giây), tạo cảm giác là chúng đang chạy song song cùng lúc. Đó
+         chính là Concurrency.
+
+  Vấn đề phát sinh:
+  Khi nhiều Task chạy "song song", điều gì xảy ra nếu 2 Task cùng muốn sử dụng một tài nguyên duy nhất cùng lúc?
+   * Ví dụ: Task Đọc Nhịp Tim muốn dùng I2C để đọc MAX30102. Task Đọc Nhiệt Độ cũng muốn dùng I2C đó để đọc MAX30205.
+   * Nếu không kiểm soát, lệnh I2C sẽ bị trộn lẫn vào nhau -> Dữ liệu hỏng, cảm biến treo.
+
+  Đó là lúc chúng ta cần Mutex.
+
+  ---
+
+  2. Mutex (Mutual Exclusion - Loại trừ tương hỗ)
+
+  Hãy tưởng tượng Mutex giống như cái Chìa khóa nhà vệ sinh duy nhất trong một văn phòng.
+
+   * Nguyên tắc hoạt động:
+       1. Chỉ có 1 chìa khóa: Chỉ có duy nhất 1 Mutex cho 1 tài nguyên (ví dụ: Bus I2C).
+       2. Giành quyền (Take): Khi Task A muốn dùng I2C, nó phải "lấy" (Take) chìa khóa Mutex.
+           * Nếu chìa khóa đang ở đó -> Task A lấy chìa, khóa cửa lại và dùng I2C.
+           * Nếu chìa khóa đã bị Task B lấy mất -> Task A buộc phải đứng chờ (Blocked) cho đến khi Task B trả chìa khóa.
+       3. Trả quyền (Give): Khi Task A dùng xong I2C, nó phải "trả" (Give) chìa khóa lại chỗ cũ để các Task khác (như Task B) có thể lấy dùng.
+
+   * Trong code dự án Health Watch:
+       * Bạn thấy lệnh: i2c_ppg_mutex = xSemaphoreCreateMutex(); -> Tạo 1 cái chìa khóa cho đường I2C PPG.
+       * Trong `sensor_acquisition_task`:
+
+   1         if (xSemaphoreTake(i2c_ppg_mutex, ...) == pdTRUE) { // Thử lấy chìa khóa
+   2             // ... Đọc cảm biến MAX30102 ...
+   3             xSemaphoreGive(i2c_ppg_mutex); // Dùng xong trả chìa khóa ngay
+   4         }
+       * Nhờ cơ chế này, luồng đọc cảm biến nhịp tim không bao giờ bị xung đột với các luồng khác, đảm bảo dữ liệu toàn vẹn.
+
+  Tóm lại:
+   * Concurrency: Nhiều việc diễn ra cùng lúc -> Giúp hệ thống phản hồi nhanh.
+   * Mutex: Cơ chế "chìa khóa" để đảm bảo các việc đó không "đánh nhau" khi tranh giành tài nguyên chung.
+
+> 13 │   ├── 2. UI Initialization
+      14 │   │   ├── ui_init() (main/ui.c)
+      15 │   │   │   ├── spi_bus_initialize()   -> Khởi tạo SPI cho màn hình
+      16 │   │   │   ├── esp_lcd_new_panel()    -> Khởi tạo driver ST7789
+      17 │   │   │   ├── lv_init()              -> Khởi tạo LVGL Graphics Lib
+      18 │   │   │   └── create_screens()       -> Tạo các màn hình (Splash, Main, Secondary)
+      19 │   │   └── xTaskCreatePinnedToCore(lvgl_task) -> Tạo Task hiển thị,  cần vẽ so đồ sâu hơn, vào đến từng logic của từng dòng code
+
+✦ Đây là sơ đồ luồng chi tiết (Deep Dive Flow) cho giai đoạn 2. UI Initialization trong hàm app_main và ui_init.
+
+  Tôi sẽ phân rã logic từ việc khởi tạo phần cứng tầng thấp (SPI/GPIO) đến việc dựng giao diện đồ họa (LVGL).
+
+  CHI TIẾT GIAI ĐOẠN 2: UI INITIALIZATION & LVGL SETUP
+
+    1 [BẮT ĐẦU] ui_init() (main/ui.c: Line ~367)
+    2 │
+    3 ├── 2.1. SPI BUS INITIALIZATION (Phần cứng tầng thấp)
+    4 │   ├── [Struct] spi_bus_config_t bus_cfg
+    5 │   │   ├── .mosi_io_num = SPI_DISPLAY_MOSI_PIN (Truyền data)
+    6 │   │   ├── .sclk_io_num = SPI_DISPLAY_SCK_PIN  (Truyền clock)
+    7 │   │   ├── .miso_io_num = -1 (Không dùng MISO vì LCD chỉ nhận, không gửi lại)
+    8 │   │   └── .max_transfer_sz = W * H * 2 (Kích thước tối đa 1 frame ảnh 16-bit)
+    9 │   │
+   10 │   └── [Lệnh] spi_bus_initialize(SPI_DISPLAY_HOST, &bus_cfg, SPI_DMA_CH_AUTO)
+   11 │       └── Khởi tạo phần cứng SPI của ESP32.
+   12 │       └── Sử dụng DMA (Direct Memory Access) để CPU không phải tốn sức copy từng byte ảnh, giúp mượt hơn.
+   13 │
+   14 ├── 2.2. LCD PANEL IO CONFIG (Giao tiếp lệnh/dữ liệu)
+   15 │   ├── [Struct] esp_lcd_panel_io_spi_config_t io_config
+   16 │   │   ├── .dc_gpio_num = SPI_DISPLAY_DC_PIN (Chân chọn Lệnh/Dữ liệu)
+   17 │   │   ├── .cs_gpio_num = SPI_DISPLAY_CS_PIN (Chân chọn chip)
+   18 │   │   ├── .pclk_hz = 20*1000*1000 (Tốc độ 20MHz)
+   19 │   │   └── .trans_queue_depth = 10 (Hàng đợi lệnh SPI)
+   20 │   │
+   21 │   └── [Lệnh] esp_lcd_new_panel_io_spi(..., &io_handle)
+   22 │       └── Tạo driver trung gian để gửi lệnh điều khiển LCD qua SPI.
+   23 │
+   24 ├── 2.3. LCD DRIVER SETUP (ST7789)
+   25 │   ├── [Struct] esp_lcd_panel_dev_config_t panel_config
+   26 │   │   ├── .reset_gpio_num = SPI_DISPLAY_RST_PIN
+   27 │   │   ├── .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB (Thứ tự màu)
+   28 │   │   └── .bits_per_pixel = 16 (Chuẩn màu RGB565)
+   29 │   │
+   30 │   ├── [Lệnh] esp_lcd_new_panel_st7789(io_handle, ..., &panel_handle)
+   31 │   │   └── Tạo driver riêng cho chip màn hình ST7789.
+   32 │   │
+   33 │   ├── [Chuỗi lệnh cấu hình màn hình]
+   34 │   │   ├── esp_lcd_panel_reset()       -> Reset cứng màn hình.
+   35 │   │   ├── esp_lcd_panel_init()        -> Gửi lệnh khởi tạo mặc định.
+   36 │   │   ├── esp_lcd_panel_invert_color(true) -> Đảo màu (đặc thù màn ST7789 IPS).
+   37 │   │   ├── esp_lcd_panel_set_gap(34, 0)-> Chỉnh tọa độ hiển thị (tránh bị lệch hình).
+   38 │   │   └── esp_lcd_panel_disp_on_off(true) -> Bật hiển thị.
+   39 │   │
+   40 │   └── [Lệnh] Backlight Control
+   41 │       ├── gpio_set_direction(BLK_PIN, OUTPUT)
+   42 │       └── gpio_set_level(BLK_PIN, 1) -> Bật đèn nền (Sáng).
+   43 │
+   44 ├── 2.4. LVGL LIBRARY INIT (Thư viện đồ họa)
+   45 │   ├── [Lệnh] lv_init() -> Khởi tạo biến nội bộ của LVGL.
+   46 │   │
+   47 │   ├── [Cấp phát bộ đệm vẽ - Double Buffering]
+   48 │   │   ├── buf1 = heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_DMA)
+   49 │   │   ├── buf2 = heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_DMA)
+   50 │   │   │   └── Cấp phát 2 vùng nhớ đệm trong RAM nội (DMA-capable).
+   51 │   │   │   └── Kích thước = 1/4 hoặc 1/10 màn hình (để tiết kiệm RAM).
+   52 │   │   └── lv_disp_draw_buf_init(..., buf1, buf2, ...) -> Đăng ký buffer với LVGL.
+   53 │   │
+   54 │   └── [Đăng ký Driver hiển thị]
+   55 │       ├── lv_disp_drv_init(&disp_drv)
+   56 │       ├── disp_drv.flush_cb = lvgl_flush_cb -> Hàm callback quan trọng nhất (Xem 2.4.1)
+   57 │       ├── disp_drv.draw_buf = &draw_buf
+   58 │       └── lv_disp_drv_register(&disp_drv) -> Kết nối LVGL với phần cứng LCD.
+   59 │
+   60 │       ├── [2.4.1] Hàm Callback `lvgl_flush_cb`
+   61 │       │   └── Được LVGL gọi khi cần vẽ một vùng ảnh lên màn hình.
+   62 │       │   └── Gọi `esp_lcd_panel_draw_bitmap()` để bắn dữ liệu qua SPI DMA.
+   63 │       │   └── Gọi `lv_disp_flush_ready()` khi xong để báo LVGL vẽ tiếp.
+   64 │
+   65 ├── 2.5. CREATE SCREENS (Xây dựng giao diện)
+   66 │   ├── [Lệnh] init_styles() -> Định nghĩa Font chữ, màu sắc (Vàng, Xanh, Trắng).
+   67 │   │
+   68 │   ├── [Màn 1: Splash Screen] (create_splash_screen)
+   69 │   │   ├── Vẽ Logo (lv_img_create).
+   70 │   │   └── Vẽ Version Firmware (lv_label_create).
+   71 │   │
+   72 │   ├── [Màn 2: Main Dashboard] (create_main_dashboard)
+   73 │   │   ├── Tạo Top Bar (Pin, Bluetooth).
+   74 │   │   ├── Tạo Group "Heart Rate" (Label BPM, Value, Unit).
+   75 │   │   ├── Tạo Group "SpO2".
+   76 │   │   └── Tạo Status Overlay (Thông báo lỗi đỏ khi tuột tay/lỗi sensor).
+   77 │   │
+   78 │   └── [Màn 3: Secondary Dashboard] (create_secondary_dashboard)
+   79 │       ├── Tạo Group "Respiration" (Nhịp thở).
+   80 │       └── Tạo Group "Stress Level".
+   81 │
+   82 ├── 2.6. LOAD STARTUP SCREEN
+   83 │   └── [Lệnh] lv_scr_load(scr_splash) -> Hiển thị màn hình Splash đầu tiên.
+   84 │
+   85 └── [KẾT THÚC ui_init()] -> Trả về true.
+   86
+   87 [TIẾP TỤC] app_main()
+   88 │
+   89 └── 2.7. CREATE UI TASK
+   90     └── [Lệnh] xTaskCreatePinnedToCore(lvgl_task, "ui", STACK, ..., Core 1)
+   91         └── Tạo một luồng riêng chỉ để xử lý giao diện.
+   92         └── Chạy ở Core 1 để tránh tranh chấp với Sensor (Core 0).
+   93         │
+   94         └── Logic bên trong `lvgl_task`:
+   95             └── LOOP:
+   96                 ├── lv_timer_handler() -> Bảo LVGL "hãy tính toán và vẽ frame mới đi".
+   97                 ├── Delay(20ms) -> Nhường CPU cho việc khác, giữ FPS ~ 30-50.
+   98                 └── Nhận dữ liệu từ Queue và cập nhật text lên màn hình.
+
+  Giải thích kỹ thuật chuyên sâu:
+
+   1. Tại sao cần `SPI_DMA_CH_AUTO`?
+       * Màn hình ST7789 có độ phân giải ví dụ 240x240 pixel, mỗi pixel 2 byte màu -> 1 frame = 115KB dữ liệu.
+       * Nếu CPU phải tự tay gửi từng byte này, nó sẽ bị quá tải (100% CPU usage) chỉ để vẽ màn hình.
+       * DMA (Direct Memory Access) là một con chip phụ. Nó tự động xúc dữ liệu từ RAM ném thẳng ra SPI mà không cần CPU động tay vào. CPU chỉ cần ra lệnh
+         "Gửi vùng nhớ này đi" rồi đi làm việc khác (như tính toán AI).
+
+   2. Cơ chế Double Buffering (buf1, buf2):
+       * Khi DMA đang gửi dữ liệu từ buf1 ra màn hình, CPU/LVGL sẽ vẽ frame tiếp theo vào buf2.
+       * Khi DMA gửi xong buf1, nó chuyển ngay sang gửi buf2, và CPU lại vẽ vào buf1.
+       * Lợi ích: Tăng gấp đôi tốc độ hiển thị và triệt tiêu hiện tượng nhấp nháy hoặc xé hình (tearing).
+
+   3. Tại sao `esp_lcd_panel_invert_color(true)`?
+       * Driver chip ST7789 có nhiều biến thể. Một số màn hình IPS giá rẻ trên thị trường được đấu dây ngược cực tính màu (Màu đen thành trắng). Lệnh này
+         sửa lỗi đó bằng phần mềm.
+
+   4. Pin Core 1 cho UI Task:
+       * Core 0 thường phải gánh các ngắt phần cứng (Wi-Fi, Bluetooth, System Events).
+       * Việc đẩy UI sang Core 1 giúp giao diện vẫn mượt mà ngay cả khi hệ thống đang bận xử lý kết nối Bluetooth nặng nề ở Core 0.
+
+  Bạn có muốn đi sâu vào logic của Task tiếp theo (Hardware Init hoặc Sensor Acquisition) không?
+

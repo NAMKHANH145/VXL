@@ -1,0 +1,47 @@
+Bài test 2:Bật chế độ giảm ẩm để kiểm tra khả năng giảm ẩm từ mức ổn định xuống mức thấp trong thời gian ngắn.
+20h đến 20h30 ngày 19/1/2026
+
+độ ẩm lúc 20h : 75%, nhiệt độ lúc 20h :27.8 độ C
+Tham chiếu mỗi 5p 1 lần, 15p sẽ có 1 file lưu vào sd card.
+Các quyết định cũng sẽ được note vào đây.
+Hệ thống đo được bật lúc 7h58 để ổn định, các log k đc log sd card sẽ ghi tay(2p)
+ 20h: Giảm ẩm trong 30p.
+ 20h05:70% 27.9 độ C
+ 20h10:66% 27.9 độ C
+ 20h15:63%, 28 độ C
+ 20h20:63 %, 28.1 độ C
+ 20h25:62%, 28.2 độ C
+ 20h30:62%, 28.3 độ C
+Block 3 không chạy nữa do còn 1p.
+ Các tín hiệu đo được từ 20h đến 20h30 ngày 19/1/2026:I (1805681) AIR_LOG: === Start logging block #3 (duration ~15 min) ===
+I (1805681) AIR_LOG: t=1805382 ms | PMS: OK PM1=5 PM2.5=46 PM10=65 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.28C H=61.7% P=1010.87hPa Alt=19.9m
+I (1810681) AIR_LOG: t=1810382 ms | PMS: OK PM1=4 PM2.5=55 PM10=70 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.27C H=61.7% P=1010.86hPa Alt=19.9m
+I (1815681) AIR_LOG: t=1815382 ms | PMS: OK PM1=0 PM2.5=54 PM10=66 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.27C H=61.7% P=1010.96hPa Alt=19.0m
+I (1820681) AIR_LOG: t=1820382 ms | PMS: OK PM1=0 PM2.5=52 PM10=56 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.26C H=61.7% P=1010.91hPa Alt=19.5m
+I (1825681) AIR_LOG: t=1825382 ms | PMS: OK PM1=0 PM2.5=52 PM10=56 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.26C H=61.7% P=1010.89hPa Alt=19.6m
+I (5681) AIR_LOG: t=5382 ms | PMS: -- PM1=-1 PM2.5=-1 PM10=-1 | SDS: -- PM2.5=-1 PM10=-1 | BME: OK T=28.27C H=61.7% P=1010.90hPa Alt=19.6m
+
+ĐÁNH GIÁ KẾT QUẢ SESSION 
+1. Nhận xét về Session này
+
+Ưu điểm:
+-Đồng bộ dữ liệu tốt: 
+Số liệu ghi tay (62%) và số liệu log từ hệ thống (61.7%) rất khớp nhau. 
+Điều này chứng tỏ cảm biến BME280 đang hoạt động ổn định và thuật toán đọc/lọc nhiễu tốt.
+
+-Đáp ứng ban đầu chấp nhận được: 
+Trong 15 phút đầu (20:00 - 20:15), độ ẩm giảm từ 75% xuống 63% (tốc độ ~0.8%/phút). 
+Đây là tốc độ phản hồi khá ổn cho một hệ thống nhỏ.
+
+-Nhiệt độ kiểm soát ổn: 
+Nhiệt độ chỉ tăng nhẹ từ 27.8°C lên 28.3°C (+0.5°C). 
+Điều này cho thấy nhiệt lượng từ mặt nóng hoặc nguồn điện không bị ảnh hưởng quá nhiều vào buồng lạnh.
+
+Hạn chế::
+-Sàn bão hòa quá cao: 
+Hệ thống bị "kẹt" cứng ở mức 62-63% suốt 15 phút cuối (từ 20:15 đến 20:30).
+Điều này cho thấy hệ thống đã đạt đến giới hạn hiệu suất làm ẩm hiện tại.
+
+2. Lưu ý cho Session sau 
+
+-Kéo dài thời gian test

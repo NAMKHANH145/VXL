@@ -1,0 +1,80 @@
+Bài 3: Duy trì mức ẩm tiện nghi 
+13pm đến 15pm ngày 20/1/2026
+**Mục tiêu:** Giữ độ ẩm ổn định tại mức phổ biến cho con người/thiết bị điện tử (40-60%)
+**Quy trình:** Chạy ổn định trong 2 tiếng.
+**Chỉ số quan tâm:**
+    *   Biên độ dao động: 2% là tốt.
+Căn cứ vào khả năng giảm ẩm của thiết bị, ta sẽ cố gắng duy trì mức ẩm 60% trong 2 tiếng.
+Ở session 3: Giữ mức ẩm ổn định tại 60% (sai số 5%) trong 2 tiếng.
+Độ ẩm lúc 13pm:77%, 27.3 độ C
+Chiến lược: Giảm đến mức bão hòa hoặc giảm xuống 55% độ ẩm, sau đó tắt thiết bị để thả trôi
+Sau đó khi đến ngưỡng thì tiếp tục hạ ẩm 
+Hệ thống bắt đầu đo từ 13h05pm
+Tham chiếu mỗi 5p 1 lần, 15p sẽ có 1 file lưu vào sd card.
+Các quyết định cũng sẽ được note vào đây.
+Hệ thống đo được bật lúc 13h15pm để ổn định, các log k đc log sd card sẽ ghi tay
+
+15 phút đầu: Ổn định hệ thống, không can thiệp, test khả năng log của sdcard.
+ 13h00: Bắt đầu đo
+13h05:77%, 27.3 độ C
+13h10:76%, 27.4 độ C
+Nhận xét: độ ẩm có xu hướng giảm, có thể do việc di chuyển thiết bị.
+Bắt đầu can thiệp để duy trì mức ẩm 55% từ 13h15.
+13h15:76%, 27.4 độ C
+bắt đầu can thiệp từ mốc 615681
+13h20:66%, 27.6 độ C
+Giảm vẫn khá ổn định ở mức 0.1%/5s.
+1150681: Giảm bắt đầu chững lại 0.1%/20s.
+13h25:64%, 27.9 độ C
+1290681: Giảm ẩm chậm lại, bắt đầu ở mức 0.1%/60s.
+13h30:61%, 28.2 độ C
+Độ ẩm vẫn tiếp tục giảm, giữ nguyên giảm ẩm, nhiệt độ có xu hướng tăng dần.
+13h35:61%, 28.5 độ C
+13h40:61%, 28.7 độ C
+13h45:61%, 28.9 độ C
+Cảm biến BME280 đã báo độ ẩm xuống dưới 60%, tiếp tục giữ nguyên chế độ giảm ẩm để theo dõi
+Nếu xuống dưới 55% sẽ tắt thiết bị để thả trôi.
+13h50:61%, 29.0 độ C
+13h55:61%, 29.2 độ C
+14h00:60%, 29.3 độ C
+14h05:60%, 29.3 độ C
+14h10:60%, 29.5 độ C
+độ ẩm vẫn giảm không đáng kể, tiếp tục giữ nguyên chế độ giảm ẩm.
+14h15:59%, 29.6 độ C
+14h20:59%, 29.8 độ C
+14h25:59%, 29.8 độ C
+14:25pm phát hiện ngưỡng độ ẩm và nhiệt độ ổn định của cảm biến
+4830681, tiếp tục theo dõi thêm để phán đoán
+5090681- độ ẩm có dấu hiệu bắt đầu giảm tiếp
+14h30:59%, 29.8 độ C
+14h35:59%, 29.9 độ C
+14h40:59%,29.9 độ C
+14h45:59%, 29.9 độ C
+15p cuối thả trôi để kiểm tra độ ổn định của độ ẩm tạo ra
+mốc tg: 6020681
+Hiện tượng: Nhiệt độ tăng dần, độ ẩm ổn định, có xu hướng tăng nhẹ
+14h50: 61 %,  29.7 độ C
+14h55: 61 %,  29.6 độ C
+15h00: 62 %, 29.5  độ C
+Các tín hiệu đo được bị lỗi từ 13h đến 15h ngày 20/1/2026:
+
+thống kê thêm: 
+15h05:  63 %, 29.4  độ C
+15h10:  64 %, 29.4  độ C
+15h15:  64 %,  29.3 độ C
+
+
+Các nhận xét về session này:
+    Ưu điểm:
+     - Hệ thống hoạt động ổn định, đưa độ ẩm từ 77% xuống vùng tiện nghi (quanh 60%) và duy trì trong hơn 1 giờ.
+     - Tốc độ giảm ẩm ban đầu nhanh (giảm 11% trong 5 phút đầu).
+     - Khi thả trôi, độ ẩm tăng lại chậm, cho thấy độ kín của môi trường tốt.
+
+    Hạn chế:
+     - Hiệu suất giảm ẩm giảm sút rõ rệt khi đạt ngưỡng 61%, không thể đạt mục tiêu 55% trong thời gian thử nghiệm.
+     - Nhiệt độ tăng đáng kể (từ 27.3 lên 29.9 độ C), gây ảnh hưởng đến chỉ số độ ẩm tương đối (RH).
+
+    Lưu ý ở session sau, cùng 1 bài test trên:
+     - Cần giải pháp tản nhiệt tốt hơn để tránh làm nóng môi trường đo.
+     - Cân nhắc tăng công suất hoặc điều chỉnh luồng khí để vượt qua ngưỡng bão hòa 60%.
+     - Kiểm tra lại các tín hiệu lỗi để đảm bảo dữ liệu log chính xác hơn.
